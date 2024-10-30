@@ -12,7 +12,6 @@ const tls = std.crypto.tls;
 //const Certificate = @import("tls12").Certificate;
 // todo use this to read compressed messages
 const zlib = @import("zlib");
-const Scheduler = @import("scheduler.zig").Scheduler;
 
 const Opcode = enum(u4) {
     Dispatch = 0,
@@ -85,10 +84,66 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     var handler = try Handler.init(alloc, .{ .token = TOKEN, .intents = Intents.fromRaw(513) });
-    errdefer handler.deinit();
+    //errdefer handler.deinit();
 
-    try handler.readMessage();
+    // try handler.readMessage();
+    const thread = try std.Thread.spawn(.{}, Handler.readMessage, .{&handler});
+    thread.detach();
+    //try handler.identify();
 }
+
+const HeartbeatHandler = struct {
+    gateway: *Handler,
+    heartbeatInterval: u64,
+    lastHeartbeatAck: bool,
+    /// useful for calculating ping
+    lastBeat: u64 = 0,
+    mutex: std.Thread.Mutex = .{},
+    thread: ?std.Thread,
+
+    pub fn init(gateway: *Handler, interval: u64) !HeartbeatHandler {
+        var gateway_mut = gateway.*;
+        return .{
+            .gateway = &gateway_mut,
+            .heartbeatInterval = interval,
+            .lastHeartbeatAck = false,
+            .lastBeat = 0,
+            .thread = null,
+        };
+    }
+
+    pub fn deinit(self: *HeartbeatHandler) void {
+        _ = self;
+    }
+
+    pub fn run(self: *HeartbeatHandler) !void {
+        while (true) {
+            std.time.sleep(self.heartbeatInterval);
+            try self.gateway.heartbeat(false);
+        }
+    }
+
+    pub fn loop(self: *HeartbeatHandler) !void {
+        //_ = self;
+        std.debug.print("start loop\n", .{});
+        var self_mut = self.*;
+        self.thread = std.Thread.spawn(.{}, HeartbeatHandler.run, .{&self_mut}) catch null;
+    }
+
+    pub fn readAck(self: *HeartbeatHandler) bool {
+        self.mutex.lock();
+        defer self.mutex.lock();
+
+        return self.lastHeartbeatAck;
+    }
+
+    pub fn updateAck(self: *HeartbeatHandler, ack: bool) void {
+        self.mutex.lock();
+        defer self.mutex.lock();
+
+        self.lastHeartbeatAck = ack;
+    }
+};
 
 const FetchReq = struct {
     allocator: mem.Allocator,
@@ -197,79 +252,26 @@ pub const Handler = struct {
         .device = "seyfert",
     };
 
-    const Heart = struct {
-        heartbeatInterval: u32,
-        ack: bool,
-        /// useful for calculating ping
-        lastBeat: u64,
-    };
-
-    const HeartTask = union(enum) {
-        heartbeat,
-        ack,
-
-        pub fn run(task: HeartTask, ctx: *Handler, next_at: i64) void {
-            std.debug.print("task successful\n", .{});
-            _ = next_at;
-            switch (task) {
-                .heartbeat => {
-                    var ctx_mut = ctx.*;
-                    HeartTask.sendhb(&ctx_mut) catch {
-                        @panic("we are fucking cooked didn't send heartbeat fuckfuckfuck");
-                    };
-                },
-                .ack => {
-                    var ctx_mut = ctx.*;
-                    ctx.heart.ack = true;
-                    HeartTask.sendhb(&ctx_mut) catch {
-                        @panic("we are fucking cooked didn't send heartbeat fuckfuckfuck");
-                    };
-                    std.debug.print("<< ♥\n", .{});
-                },
-            }
-        }
-
-        fn sendhb(ctx: *Handler) !void {
-            std.debug.print(">> ♥\n", .{});
-            try ctx.heartbeat(false);
-        }
-    };
-
     client: ws.Client,
     token: []const u8,
     intents: Intents,
     session_id: ?[]const u8,
     sequence: ?u16,
-    heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
+    heartbeater: ?HeartbeatHandler,
     allocator: mem.Allocator,
     resume_gateway_url: ?[]const u8 = null,
     info: GatewayBotInfo,
-    heart_task: Scheduler(HeartTask, *Handler),
-    mutex: std.Thread.Mutex = .{},
 
-    inline fn jitter() i1 {
-        return 0;
-    }
-
-    pub inline fn resumable(self: *Handler) bool {
-        return self.resume_gateway_url != null and
-            self.session_id != null and
-            self.sequence != null;
-    }
-
-    pub fn resume_(self: *Handler) !void {
+    pub fn resume_conn(self: *Handler, out: anytype) !void {
         const data = .{ .op = @intFromEnum(Opcode.Resume), .d = .{
             .token = self.token,
             .session_id = self.session_id,
             .seq = self.sequence,
         } };
 
-        var buf: [1000]u8 = undefined;
-        var fba = std.heap.FixedBufferAllocator.init(&buf);
-        var string = std.ArrayList(u8).init(fba.allocator());
-        try std.json.stringify(data, .{}, string.writer());
+        try json.stringify(data, .{}, out);
 
-        try self.client.write(string.items);
+        try self.client.write(&out);
     }
 
     inline fn gateway_url(self: ?*Handler) []const u8 {
@@ -329,9 +331,8 @@ pub const Handler = struct {
             .client = try Handler._connect_ws(allocator, parsed.value.url["wss://".len..]),
             .session_id = undefined,
             .sequence = undefined,
-            .heart = undefined,
+            .heartbeater = null,
             .info = parsed.value,
-            .heart_task = Scheduler(HeartTask, *Handler).init(allocator),
         };
     }
 
@@ -352,9 +353,10 @@ pub const Handler = struct {
     }
 
     pub fn deinit(self: *Handler) void {
-        defer self.heart_task.deinit();
         defer self.client.deinit();
-        @panic("killing the whole bot");
+        if (self.heartbeater) |*hb| {
+            hb.deinit();
+        }
     }
 
     // listens for messages
@@ -366,6 +368,7 @@ pub const Handler = struct {
                 std.debug.print(".", .{});
                 continue;
             };
+
             // must be called once you're done processing the request
             defer self.client.done(msg);
 
@@ -378,10 +381,7 @@ pub const Handler = struct {
                 t: ?[]const u8,
             };
 
-            const raw = json.parseFromSlice(DiscordData, self.allocator, msg.data, .{}) catch {
-                std.debug.print("unexpected payload, continuing: {s}\n", .{msg.data});
-                continue;
-            };
+            const raw = try json.parseFromSlice(DiscordData, self.allocator, msg.data, .{});
             defer raw.deinit();
 
             const payload = raw.value;
@@ -395,43 +395,32 @@ pub const Handler = struct {
                 Opcode.Hello => {
                     const HelloPayload = struct { heartbeat_interval: u32, _trace: [][]const u8 };
                     const parsed = try json.parseFromValue(HelloPayload, self.allocator, payload.d, .{});
-                    defer parsed.deinit();
                     const helloPayload = parsed.value;
 
                     // PARSE NEW URL IN READY
 
-                    self.heart = Heart{
-                        // TODO: fix bug
-                        .heartbeatInterval = helloPayload.heartbeat_interval,
-                        .ack = false,
-                        .lastBeat = 0,
-                    };
+                    if (self.heartbeater == null) {
+                        var self_mut = self.*;
+
+                        self.heartbeater = try HeartbeatHandler.init(
+                        // we cooking
+                        &self_mut, helloPayload.heartbeat_interval);
+                    }
+
+                    var heartbeater = self.heartbeater.?;
+
+                    heartbeater.heartbeatInterval = helloPayload.heartbeat_interval;
 
                     try self.heartbeat(false);
-                    std.debug.print("starting heart beater. seconds:{d}...\n", .{self.heart.heartbeatInterval});
-                    var self_mut = self.*;
-                    try self.heart_task.start(&self_mut);
-                    errdefer self.heart_task.deinit();
-                    try self.heart_task.scheduleIn(.heartbeat, @as(i64, @intCast(self.heart.heartbeatInterval)));
-                    if (self.resumable()) {
-                        try self.resume_();
-                        return;
-                    } else {
-                        try self.identify();
-                    }
-                },
+                    try heartbeater.loop();
+                    try self.identify();
+                }, // heartbeat_interval
                 Opcode.HeartbeatACK => {
-                    // perhaps lock the thread w a mutex?
-                    self.heart.ack = true;
-                    std.debug.print("got heartbeat\n", .{});
+                    if (self.heartbeater) |*hb| {
+                        hb.lastHeartbeatAck = true;
+                    }
                 }, // keep this shit alive otherwise kill it
-                Opcode.Heartbeat => {
-                    try self.heartbeat(true);
-                },
-                Opcode.Reconnect => {
-                    std.debug.print("reconnecting\n", .{});
-                    try self.reconnect();
-                },
+                Opcode.Reconnect => {},
                 Opcode.Resume => {
                     const WithSequence = struct {
                         token: []const u8,
@@ -444,25 +433,30 @@ pub const Handler = struct {
                     self.sequence = @as(?u16, payload_new.seq);
                     self.session_id = payload_new.session_id;
                 },
-                Opcode.InvalidSession => {},
                 else => {
                     std.debug.print("Unhandled {} -- {s}", .{ payload.op, "none" });
                 },
             }
+            //try client.write(message.data);
         }
     }
 
     pub fn heartbeat(self: *Handler, requested: bool) !void {
+        var heartbeater = self.heartbeater.?;
         //std.time.sleep(heartbeater.heartbeatInterval);
 
         if (!requested) {
-            if (!self.heart.ack) {
-                //try self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection");
+            if (!heartbeater.readAck()) {
+                try self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection");
+                heartbeater.deinit();
                 return;
             }
-            self.heart.ack = false;
+            heartbeater.updateAck(false);
         }
         const data = .{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence };
+
+        heartbeater.mutex.lock();
+        defer heartbeater.mutex.unlock();
 
         var buf: [1000]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
@@ -475,12 +469,13 @@ pub const Handler = struct {
     }
 
     pub inline fn reconnect(self: *Handler) !void {
-        try self.disconnect();
-        _ = try self.connect();
+        _ = self;
+        //try self.disconnect();
+        //_ = try self.connect();
     }
 
     pub fn connect(self: *Handler) !Handler {
-        //std.time.sleep(std.time.ms_per_s * 5);
+        std.time.sleep(std.time.ms_per_s * 5);
         self.client = try Handler._connect_ws(self.allocator, self.gateway_url());
 
         return self.*;
@@ -491,8 +486,6 @@ pub const Handler = struct {
     }
 
     pub fn close(self: *Handler, code: ShardSocketCloseCodes, reason: []const u8) !void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
         std.debug.print("cooked closing ws conn...\n", .{});
         // Implement reconnection logic here
         try self.client.close(.{
