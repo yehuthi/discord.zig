@@ -206,9 +206,10 @@ pub const Handler = struct {
                         @panic("zombied conn\n");
                     }
 
-                    ctx.heartbeat() catch {
-                        @panic("we are fucking cooked didn't send heartbeat fuckfuckfuck");
-                    };
+                    //do we really have to send this?
+                    //ctx.heartbeat() catch {
+                    //   @panic("we are fucking cooked didn't send heartbeat fuckfuckfuck");
+                    //};
                     ctx.heart.ack = false;
                 },
                 .ack => {
@@ -322,31 +323,35 @@ pub const Handler = struct {
             //.ca_bundle = @import("tls12").Certificate.Bundle{},
         });
 
-        try conn.handshake("/?v=10&encoding=json", .{
+        conn.handshake("/?v=10&encoding=json", .{
             .timeout_ms = 1000,
             .headers = "host: gateway.discord.gg",
-        });
+        }) catch unreachable;
 
         return conn;
     }
 
     pub fn deinit(self: *Handler) void {
-        defer self.heart_task.deinit();
-        defer self.client.deinit();
+        self.heart_task.deinit();
+        self.client.deinit();
         std.debug.print("killing the whole bot\n", .{});
     }
 
     // listens for messages
     pub fn readMessage(self: *Handler) !void {
-        try self.client.readTimeout(std.time.ms_per_s * 1);
+        try self.client.readTimeout(0);
         while (true) {
-            const msg = (try self.client.read()) orelse {
-                // no message after our 1 second
+            const msg = self.client.read() catch |err| switch (err) {
+                error.Closed => return,
+                else => return err,
+            } orelse {
                 std.debug.print(".", .{});
                 continue;
             };
             // must be called once you're done processing the request
             defer self.client.done(msg);
+
+            std.debug.print("type of: {?s}\n", .{@tagName(msg.type)});
 
             const DiscordData = struct {
                 s: ?u64, //well figure it out
@@ -397,14 +402,13 @@ pub const Handler = struct {
                         return;
                     } else {
                         try self.identify();
-                        try self.heartbeat(); // first hb
+                        try self.heartbeat();
                     }
                 },
                 Opcode.HeartbeatACK => {
-                    // perhaps lock the thread w a mutex?
                     try self.heart_task.scheduleIn(.ack, 0);
                     std.debug.print("got heartbeat\n", .{});
-                }, // keep this shit alive otherwise kill it
+                },
                 Opcode.Heartbeat => {
                     try self.heartbeat();
                 },
