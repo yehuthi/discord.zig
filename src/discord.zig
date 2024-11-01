@@ -13,8 +13,6 @@ const zlib = @import("zlib");
 
 const Self = @This();
 
-var heart = Heart{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 };
-
 const Opcode = enum(u4) {
     Dispatch = 0,
     Heartbeat = 1,
@@ -197,12 +195,13 @@ intents: Intents,
 allocator: mem.Allocator,
 resume_gateway_url: ?[]const u8 = null,
 info: GatewayBotInfo,
-mutex: std.Thread.Mutex = .{},
-
-rwSemaphore: std.Thread.RwLock = .{},
 
 session_id: ?[]const u8,
-sequence: *u64,
+sequence: u64,
+heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
+
+///useful for closing the conn
+mutex: std.Thread.Mutex = .{},
 
 inline fn jitter() i1 {
     return 0;
@@ -264,18 +263,17 @@ pub fn init(allocator: mem.Allocator, args: struct { token: []const u8, intents:
     }
 
     const parsed = try json.parseFromSlice(GatewayBotInfo, allocator, body, .{});
+    const url = parsed.value.url["wss://".len..];
     defer parsed.deinit();
-
-    var counter: u64 = 0;
 
     return .{
         .allocator = allocator,
         .token = args.token,
         .intents = args.intents,
         // maybe there is a better way to do this
-        .client = try Self._connect_ws(allocator, parsed.value.url["wss://".len..]),
+        .client = try Self._connect_ws(allocator, url),
         .session_id = undefined,
-        .sequence = &counter,
+        .sequence = 0,
         .info = parsed.value,
     };
 }
@@ -305,13 +303,6 @@ pub fn readMessage(self: *Self) !void {
     try self.client.readTimeout(0);
 
     while (true) {
-        //if (!self.rwSemaphore.tryLockShared()) {
-        //std.debug.print("YIELDING THREAD\n", .{});
-        //try std.Thread.yield();
-        //continue;
-        //}
-        //defer self.rwSemaphore.unlockShared();
-
         const msg = (try self.client.read()) orelse {
             std.debug.print(".", .{});
             continue;
@@ -327,7 +318,6 @@ pub fn readMessage(self: *Self) !void {
         };
 
         const raw = try json.parseFromSlice(DiscordData, self.allocator, msg.data, .{});
-        defer raw.deinit();
 
         const payload = raw.value;
 
@@ -343,24 +333,22 @@ pub fn readMessage(self: *Self) !void {
             Opcode.Hello => {
                 const HelloPayload = struct { heartbeat_interval: u64, _trace: [][]const u8 };
                 const parsed = try json.parseFromValue(HelloPayload, self.allocator, payload.d, .{});
-                defer parsed.deinit();
                 const helloPayload = parsed.value;
 
                 // PARSE NEW URL IN READY
 
-                heart = Heart{
+                self.heart = Heart{
                     // TODO: fix bug
                     .heartbeatInterval = helloPayload.heartbeat_interval,
                     .ack = false,
                     .lastBeat = 0,
                 };
 
-                std.debug.print("starting heart beater. seconds:{d}...\n", .{heart.heartbeatInterval});
+                std.debug.print("starting heart beater. seconds:{d}...\n", .{self.heart.heartbeatInterval});
 
                 try self.heartbeat();
 
-                var self_mut = self.*;
-                const thread = try std.Thread.spawn(.{}, Self.heartbeat_wait, .{&self_mut});
+                const thread = try std.Thread.spawn(.{}, Self.heartbeat_wait, .{self});
                 thread.detach();
 
                 if (self.resumable()) {
@@ -373,7 +361,11 @@ pub fn readMessage(self: *Self) !void {
             Opcode.HeartbeatACK => {
                 // perhaps this needs a mutex?
                 std.debug.print("got heartbeat ack\n", .{});
-                heart.ack = true;
+
+                self.mutex.lock();
+                defer self.mutex.unlock();
+
+                self.heart.ack = true;
             },
             Opcode.Heartbeat => {
                 std.debug.print("sending requested heartbeat\n", .{});
@@ -410,21 +402,23 @@ pub fn heartbeat(self: *Self) !void {
 }
 
 pub fn heartbeat_wait(self: *Self) !void {
-    std.debug.print("zzz for {d}\n", .{heart.heartbeatInterval});
-    std.Thread.sleep(@as(u64, @intCast(std.time.ns_per_ms * heart.heartbeatInterval)));
+    while (true) {
+        std.debug.print("zzz for {d}\n", .{self.heart.heartbeatInterval});
+        std.Thread.sleep(@as(u64, @intCast(std.time.ns_per_ms * self.heart.heartbeatInterval)));
 
-    //self.rwSemaphore.lock();
-    //defer self.rwSemaphore.unlock();
+        std.debug.print(">> ♥ and ack received: {}\n", .{self.heart.ack});
 
-    std.debug.print(">> ♥ and ack received: {}\n", .{heart.ack});
+        self.mutex.lock();
+        defer self.mutex.unlock();
 
-    if (heart.ack == true) {
-        std.debug.print("sending unrequested heartbeat\n", .{});
-        self.heartbeat() catch unreachable;
-        try self.client.readTimeout(1000);
-    } else {
-        self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection") catch unreachable;
-        @panic("zombied conn\n");
+        if (self.heart.ack == true) {
+            std.debug.print("sending unrequested heartbeat\n", .{});
+            self.heartbeat() catch unreachable;
+            try self.client.readTimeout(1000);
+        } else {
+            self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection") catch unreachable;
+            @panic("zombied conn\n");
+        }
     }
 }
 
@@ -471,9 +465,12 @@ pub fn send(self: *Self, data: anytype) !void {
 }
 
 pub inline fn getSequence(self: *Self) u64 {
-    return self.sequence.*;
+    return self.sequence;
 }
 
 pub inline fn setSequence(self: *Self, new: u64) void {
-    self.sequence.* = new;
+    self.mutex.lock();
+    defer self.mutex.unlock();
+
+    self.sequence = new;
 }
