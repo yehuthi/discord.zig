@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const zig_tls_http = b.createModule(.{
-        .root_source_file = b.path("lib/zig-tls12/src/HttpClient.zig"),
+        .root_source_file = b.path("lib/zig-tls12/src/entry.zig"),
         .target = target,
         .optimize = optimize,
     });

@@ -4,12 +4,10 @@ const mem = std.mem;
 const http = std.http;
 const ws = @import("ws");
 const builtin = @import("builtin");
-const HttpClient = @import("tls12");
+const HttpClient = @import("tls12").HttpClient;
 const net = std.net;
 const crypto = std.crypto;
 const tls = std.crypto.tls;
-//const TlsClient = @import("tls12").TlsClient;
-//const Certificate = @import("tls12").Certificate;
 // todo use this to read compressed messages
 const zlib = @import("zlib");
 
@@ -287,7 +285,6 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
         .tls = true, // important: zig.http doesn't support this, type shit
         .port = 443,
         .host = url,
-        //.ca_bundle = @import("tls12").Certificate.Bundle{},
     });
 
     conn.handshake("/?v=10&encoding=json", .{
@@ -308,15 +305,15 @@ pub fn readMessage(self: *Self) !void {
     try self.client.readTimeout(0);
 
     while (true) {
-        if (!self.rwSemaphore.tryLockShared()) {
-            // writer might be writing
-            std.debug.print("YIELDING THREAD\n", .{});
-            try std.Thread.yield();
-            continue;
-        }
-        defer self.rwSemaphore.unlockShared();
+        //if (!self.rwSemaphore.tryLockShared()) {
+        //std.debug.print("YIELDING THREAD\n", .{});
+        //try std.Thread.yield();
+        //continue;
+        //}
+        //defer self.rwSemaphore.unlockShared();
 
-        const msg = self.read() orelse {
+        const msg = (try self.client.read()) orelse {
+            std.debug.print(".", .{});
             continue;
         };
 
@@ -374,15 +371,12 @@ pub fn readMessage(self: *Self) !void {
                 }
             },
             Opcode.HeartbeatACK => {
-                self.mutex.lock();
-                defer self.mutex.unlock();
                 // perhaps this needs a mutex?
                 std.debug.print("got heartbeat ack\n", .{});
                 heart.ack = true;
             },
             Opcode.Heartbeat => {
-                self.mutex.lock();
-                defer self.mutex.unlock();
+                std.debug.print("sending requested heartbeat\n", .{});
                 try self.heartbeat();
             },
             Opcode.Reconnect => {
@@ -419,13 +413,15 @@ pub fn heartbeat_wait(self: *Self) !void {
     std.debug.print("zzz for {d}\n", .{heart.heartbeatInterval});
     std.Thread.sleep(@as(u64, @intCast(std.time.ns_per_ms * heart.heartbeatInterval)));
 
-    self.rwSemaphore.lock();
-    defer self.rwSemaphore.unlock();
+    //self.rwSemaphore.lock();
+    //defer self.rwSemaphore.unlock();
 
     std.debug.print(">> ♥ and ack received: {}\n", .{heart.ack});
 
     if (heart.ack == true) {
+        std.debug.print("sending unrequested heartbeat\n", .{});
         self.heartbeat() catch unreachable;
+        try self.client.readTimeout(1000);
     } else {
         self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection") catch unreachable;
         @panic("zombied conn\n");
@@ -463,20 +459,13 @@ pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) !void
     });
 }
 
-pub fn read(self: *Self) ?ws.proto.Message {
-    const msg = self.client.read() catch |err| switch (err) {
-        error.Closed => return null,
-        else => return null,
-    } orelse unreachable;
-
-    return msg;
-}
-
 pub fn send(self: *Self, data: anytype) !void {
     var buf: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buf);
     var string = std.ArrayList(u8).init(fba.allocator());
     try std.json.stringify(data, .{}, string.writer());
+
+    std.debug.print("{s}\n", .{string.items});
 
     try self.client.write(string.items);
 }
