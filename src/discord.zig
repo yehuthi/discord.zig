@@ -200,7 +200,8 @@ allocator: mem.Allocator,
 resume_gateway_url: ?[]const u8 = null,
 info: GatewayBotInfo,
 mutex: std.Thread.Mutex = .{},
-listen_semaphore: std.Thread.Semaphore = .{ .permits = 1 },
+
+rwSemaphore: std.Thread.RwLock = .{},
 
 session_id: ?[]const u8,
 sequence: *u64,
@@ -307,8 +308,13 @@ pub fn readMessage(self: *Self) !void {
     try self.client.readTimeout(0);
 
     while (true) {
-        self.listen_semaphore.wait();
-        defer self.listen_semaphore.post();
+        if (!self.rwSemaphore.tryLockShared()) {
+            // writer might be writing
+            std.debug.print("YIELDING THREAD\n", .{});
+            try std.Thread.yield();
+            continue;
+        }
+        defer self.rwSemaphore.unlockShared();
 
         const msg = self.read() orelse {
             continue;
@@ -413,8 +419,8 @@ pub fn heartbeat_wait(self: *Self) !void {
     std.debug.print("zzz for {d}\n", .{heart.heartbeatInterval});
     std.Thread.sleep(@as(u64, @intCast(std.time.ns_per_ms * heart.heartbeatInterval)));
 
-    self.listen_semaphore.wait();
-    defer self.listen_semaphore.post();
+    self.rwSemaphore.lock();
+    defer self.rwSemaphore.unlock();
 
     std.debug.print(">> ♥ and ack received: {}\n", .{heart.ack});
 
@@ -471,8 +477,6 @@ pub fn send(self: *Self, data: anytype) !void {
     var fba = std.heap.FixedBufferAllocator.init(&buf);
     var string = std.ArrayList(u8).init(fba.allocator());
     try std.json.stringify(data, .{}, string.writer());
-
-    std.debug.print("data we are sending: {s}\n", .{string.items});
 
     try self.client.write(string.items);
 }
