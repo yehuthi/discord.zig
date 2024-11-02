@@ -1,7 +1,7 @@
 const std = @import("std");
 const AutoHashMapUnmanaged = std.AutoHashMapUnmanaged;
 
-fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
+pub fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
     const info = @typeInfo(T);
     switch (info) {
         .Struct => |s| {
@@ -33,7 +33,7 @@ fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
     }
 }
 
-fn Partial(comptime T: type) type {
+pub fn Partial(comptime T: type) type {
     const info = @typeInfo(T);
     switch (info) {
         .Struct => |s| {
@@ -84,7 +84,7 @@ test "partial" {
     try std.testing.expectEqual(@as(?u32, null), part.baz);
 }
 
-const PresenceStatus = enum {
+pub const PresenceStatus = enum {
     online,
     dnd,
     idle,
@@ -92,7 +92,7 @@ const PresenceStatus = enum {
 };
 
 /// https://discord.com/developers/docs/resources/user#user-object-premium-types
-const PremiumTypes = enum {
+pub const PremiumTypes = enum {
     None,
     NitroClassic,
     Nitro,
@@ -100,7 +100,7 @@ const PremiumTypes = enum {
 };
 
 /// https://discord.com/developers/docs/resources/user#user-object-user-flags
-const UserFlags = packed struct {
+pub const UserFlags = packed struct {
     DiscordEmployee: bool = false,
     PartneredServerOwner: bool = false,
     HypeSquadEventsMember: bool = false,
@@ -122,7 +122,7 @@ const UserFlags = packed struct {
     ActiveDeveloper: bool = false,
 };
 
-const MemberFlags = packed struct {
+pub const MemberFlags = packed struct {
     ///
     /// Member has left and rejoined the guild
     ///
@@ -185,7 +185,7 @@ const MemberFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#channels-resource
-const ChannelFlags = packed struct {
+pub const ChannelFlags = packed struct {
     None: bool = false,
     /// this thread is pinned to the top of its parent `GUILD_FORUM` channel
     Pinned: bool = false,
@@ -198,13 +198,13 @@ const ChannelFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-flags
-const RoleFlags = packed struct {
+pub const RoleFlags = packed struct {
     None: bool = false,
     /// Role can be selected by members in an onboarding prompt
     InPrompt: bool = false,
 };
 
-const AttachmentFlags = packed struct {
+pub const AttachmentFlags = packed struct {
     None: bool = false,
     _pad: u1 = 0,
     /// This attachment has been edited using the remix feature on mobile
@@ -212,7 +212,7 @@ const AttachmentFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/monetization/skus#sku-object-sku-flags
-const SkuFlags = packed struct {
+pub const SkuFlags = packed struct {
     _pad: u2 = 0,
     /// SKU is available for purchase
     Available: bool = false,
@@ -224,7 +224,7 @@ const SkuFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-flags
-const MessageFlags = packed struct {
+pub const MessageFlags = packed struct {
     /// This message has been published to subscribed channels (via Channel Following)
     Crossposted: bool = false,
     /// This message originated from a message in another channel (via Channel Following)
@@ -251,7 +251,7 @@ const MessageFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#activity-object-activity-flags
-const ActivityFlags = packed struct {
+pub const ActivityFlags = packed struct {
     Instance: bool = false,
     Join: bool = false,
     Spectate: bool = false,
@@ -264,19 +264,19 @@ const ActivityFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors
-const IntegrationExpireBehaviors = enum(u4) {
+pub const IntegrationExpireBehaviors = enum(u4) {
     RemoveRole = 0,
     Kick = 1,
 };
 
 /// https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum
-const TeamMembershipStates = enum(u4) {
+pub const TeamMembershipStates = enum(u4) {
     Invited = 1,
     Accepted = 2,
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#application-application-flags
-const ApplicationFlags = packed struct {
+pub const ApplicationFlags = packed struct {
     _pad: u5 = 0,
     /// Indicates if an app uses the Auto Moderation API.
     ApplicationAutoModerationRuleCreateBadge: bool = false,
@@ -303,7 +303,7 @@ const ApplicationFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/interactions/message-components#component-types
-const MessageComponentTypes = enum(u4) {
+pub const MessageComponentTypes = enum(u4) {
     /// A container for other components
     ActionRow = 1,
     /// A button object
@@ -322,7 +322,7 @@ const MessageComponentTypes = enum(u4) {
     SelectMenuChannels,
 };
 
-const TextStyles = enum(u4) {
+pub const TextStyles = enum(u4) {
     /// Intended for short single-line text
     Short = 1,
     /// Intended for much longer inputs
@@ -330,7 +330,7 @@ const TextStyles = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/interactions/message-components#buttons-button-styles
-const ButtonStyles = enum(u4) {
+pub const ButtonStyles = enum(u4) {
     /// A blurple button
     Primary = 1,
     /// A grey button
@@ -346,7 +346,7 @@ const ButtonStyles = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mention-types
-const AllowedMentionsTypes = enum {
+pub const AllowedMentionsTypes = enum {
     /// Controls role mentions
     roles,
     /// Controls user mentions
@@ -356,7 +356,7 @@ const AllowedMentionsTypes = enum {
 };
 
 /// https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types
-const WebhookTypes = enum(u4) {
+pub const WebhookTypes = enum(u4) {
     /// Incoming Webhooks can post messages to channels with a generated token
     Incoming = 1,
     /// Channel Follower Webhooks are internal webhooks used with Channel Following to post new messages into channels
@@ -366,7 +366,7 @@ const WebhookTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-types
-const EmbedTypes = union(enum) {
+pub const EmbedTypes = union(enum) {
     rich,
     image,
     video,
@@ -377,7 +377,7 @@ const EmbedTypes = union(enum) {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level
-const DefaultMessageNotificationLevels = enum {
+pub const DefaultMessageNotificationLevels = enum {
     /// Members will receive notifications for all messages by default
     AllMessages,
     /// Members will receive notifications only for messages that \@mention them by default
@@ -385,7 +385,7 @@ const DefaultMessageNotificationLevels = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level
-const ExplicitContentFilterLevels = enum {
+pub const ExplicitContentFilterLevels = enum {
     /// Media content will not be scanned
     Disabled,
     /// Media content sent by members without roles will be scanned
@@ -395,7 +395,7 @@ const ExplicitContentFilterLevels = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-verification-level
-const VerificationLevels = enum {
+pub const VerificationLevels = enum {
     /// Unrestricted
     None,
     /// Must have verified email on account
@@ -409,7 +409,7 @@ const VerificationLevels = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-guild-features
-const GuildFeatures = enum {
+pub const GuildFeatures = enum {
     /// Guild has access to set an invite splash background
     INVITE_SPLASH,
     /// Guild has access to set a vanity URL
@@ -465,7 +465,7 @@ const GuildFeatures = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-mfa-level
-const MfaLevels = enum {
+pub const MfaLevels = enum {
     /// Guild has no MFA/2FA requirement for moderation actions
     None,
     /// Guild has a 2FA requirement for moderation actions
@@ -473,7 +473,7 @@ const MfaLevels = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
-const SystemChannelFlags = packed struct {
+pub const SystemChannelFlags = packed struct {
     /// Suppress member join notifications
     SuppressJoinNotifications: bool = false,
     /// Suppress server boost notifications
@@ -485,7 +485,7 @@ const SystemChannelFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-premium-tier
-const PremiumTiers = enum {
+pub const PremiumTiers = enum {
     /// Guild has not unlocked any Server Boost perks
     None,
     /// Guild has unlocked Server Boost level 1 perks
@@ -497,7 +497,7 @@ const PremiumTiers = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level
-const GuildNsfwLevel = enum {
+pub const GuildNsfwLevel = enum {
     Default,
     Explicit,
     Safe,
@@ -505,7 +505,7 @@ const GuildNsfwLevel = enum {
 };
 
 /// https://discord.com/developers/docs/resources/channel#channel-object-channel-types
-const ChannelTypes = packed struct {
+pub const ChannelTypes = packed struct {
     /// A text channel within a server
     GuildText: bool = false,
     /// A direct message between users
@@ -535,12 +535,12 @@ const ChannelTypes = packed struct {
     GuildMedia: bool = false,
 };
 
-const OverwriteTypes = enum {
+pub const OverwriteTypes = enum {
     Role,
     Member,
 };
 
-const VideoQualityModes = enum(u4) {
+pub const VideoQualityModes = enum(u4) {
     /// Discord chooses the quality for optimal performance
     Auto = 1,
     /// 720p
@@ -548,7 +548,7 @@ const VideoQualityModes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#activity-object-activity-types
-const ActivityTypes = enum(u4) {
+pub const ActivityTypes = enum(u4) {
     Playing = 0,
     Streaming = 1,
     Listening = 2,
@@ -558,7 +558,7 @@ const ActivityTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-types
-const MessageTypes = enum(u4) {
+pub const MessageTypes = enum(u4) {
     Default,
     RecipientAdd,
     RecipientRemove,
@@ -599,7 +599,7 @@ const MessageTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-activity-types
-const MessageActivityTypes = enum(u4) {
+pub const MessageActivityTypes = enum(u4) {
     Join = 1,
     Spectate = 2,
     Listen = 3,
@@ -607,7 +607,7 @@ const MessageActivityTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types
-const StickerTypes = enum(u4) {
+pub const StickerTypes = enum(u4) {
     /// an official sticker in a pack
     Standard = 1,
     /// a sticker uploaded to a guild for the guild's members
@@ -615,7 +615,7 @@ const StickerTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types
-const StickerFormatTypes = enum(u4) {
+pub const StickerFormatTypes = enum(u4) {
     Png = 1,
     APng,
     Lottie,
@@ -623,7 +623,7 @@ const StickerFormatTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/interactions/slash-commands#interaction-interactiontype
-const InteractionTypes = enum(u4) {
+pub const InteractionTypes = enum(u4) {
     Ping = 1,
     ApplicationCommand = 2,
     MessageComponent = 3,
@@ -632,7 +632,7 @@ const InteractionTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/interactions/slash-commands#applicationcommandoptiontype
-const ApplicationCommandOptionTypes = enum(u4) {
+pub const ApplicationCommandOptionTypes = enum(u4) {
     SubCommand = 1,
     SubCommandGroup,
     String,
@@ -647,7 +647,7 @@ const ApplicationCommandOptionTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-events
-const AuditLogEvents = enum(u4) {
+pub const AuditLogEvents = enum(u4) {
     /// Server settings were updated
     GuildUpdate = 1,
     /// Channel was created
@@ -776,18 +776,18 @@ const AuditLogEvents = enum(u4) {
     HomeSettingsUpdate,
 };
 
-const ScheduledEventPrivacyLevel = enum(u4) {
+pub const ScheduledEventPrivacyLevel = enum(u4) {
     /// the scheduled event is only accessible to guild members
     GuildOnly = 2,
 };
 
-const ScheduledEventEntityType = enum(u4) {
+pub const ScheduledEventEntityType = enum(u4) {
     StageInstance = 1,
     Voice,
     External,
 };
 
-const ScheduledEventStatus = enum(u4) {
+pub const ScheduledEventStatus = enum(u4) {
     Scheduled = 1,
     Active,
     Completed,
@@ -795,12 +795,12 @@ const ScheduledEventStatus = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/invite#invite-object-target-user-types
-const TargetTypes = enum(u4) {
+pub const TargetTypes = enum(u4) {
     Stream = 1,
     EmbeddedApplication,
 };
 
-const ApplicationCommandTypes = enum(u4) {
+pub const ApplicationCommandTypes = enum(u4) {
     /// A text-based command that shows up when a user types `/`
     ChatInput = 1,
     /// A UI-based command that shows up when you right click or tap on a user
@@ -811,14 +811,14 @@ const ApplicationCommandTypes = enum(u4) {
     PrimaryEntryPoint,
 };
 
-const ApplicationCommandPermissionTypes = enum(u4) {
+pub const ApplicationCommandPermissionTypes = enum(u4) {
     Role = 1,
     User,
     Channel,
 };
 
 /// https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
-export const BitwisePermissionFlags = packed struct {
+pub const BitwisePermissionFlags = packed struct {
     /// Allows creation of instant invites
     CREATE_INSTANT_INVITE: bool = false,
     /// Allows kicking members
@@ -919,10 +919,10 @@ export const BitwisePermissionFlags = packed struct {
     USE_EXTERNAL_APPS: bool = false,
 };
 
-const PermissionStrings = BitwisePermissionFlags;
+pub const PermissionStrings = BitwisePermissionFlags;
 
 /// https://discord.com/developers/docs/topics/opcodes-and-status-codes#opcodes-and-status-codes
-const GatewayCloseEventCodes = enum(u16) {
+pub const GatewayCloseEventCodes = enum(u16) {
     /// A normal closure of the gateway. You may attempt to reconnect.
     NormalClosure = 1000,
     /// We're not sure what went wrong. Try reconnecting?
@@ -956,7 +956,7 @@ const GatewayCloseEventCodes = enum(u16) {
 };
 
 /// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
-const GatewayOpcodes = enum(u4) {
+pub const GatewayOpcodes = enum(u4) {
     /// An event was dispatched.
     Dispatch,
     /// Fired periodically by the client to keep the connection alive.
@@ -981,7 +981,7 @@ const GatewayOpcodes = enum(u4) {
     HeartbeatACK,
 };
 
-const GatewayDispatchEventNames = union(enum) {
+pub const GatewayDispatchEventNames = union(enum) {
     APPLICATION_COMMAND_PERMISSIONS_UPDATE,
     AUTO_MODERATION_RULE_CREATE,
     AUTO_MODERATION_RULE_UPDATE,
@@ -1053,7 +1053,7 @@ const GatewayDispatchEventNames = union(enum) {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#list-of-intents
-const GatewayIntents = packed struct {
+pub const GatewayIntents = packed struct {
     ///
     /// - GUILD_CREATE
     /// - GUILD_UPDATE
@@ -1201,10 +1201,10 @@ const GatewayIntents = packed struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#list-of-intents
-const Intents = GatewayIntents;
+pub const Intents = GatewayIntents;
 
 /// https://discord.com/developers/docs/interactions/slash-commands#interaction-response-interactionresponsetype
-const InteractionResponseTypes = enum(u4) {
+pub const InteractionResponseTypes = enum(u4) {
     /// ACK a `Ping`
     Pong = 1,
     /// Respond to an interaction with a message
@@ -1232,14 +1232,14 @@ const InteractionResponseTypes = enum(u4) {
     LaunchActivity = 12,
 };
 
-const SortOrderTypes = enum {
+pub const SortOrderTypes = enum {
     /// Sort forum posts by activity
     LatestActivity,
     /// Sort forum posts by creation time (from most recent to oldest)
     CreationDate,
 };
 
-const ForumLayout = enum(u4) {
+pub const ForumLayout = enum(u4) {
     /// No default has been set for forum channel.
     NotSet = 0,
     /// Display posts as a list.
@@ -1250,7 +1250,7 @@ const ForumLayout = enum(u4) {
 
 /// https://discord.com/developers/docs/reference#image-formatting
 /// json is only for stickers
-const ImageFormat = union(enum) {
+pub const ImageFormat = union(enum) {
     jpg,
     jpeg,
     png,
@@ -1260,9 +1260,9 @@ const ImageFormat = union(enum) {
 };
 
 /// https://discord.com/developers/docs/reference#image-formatting
-const ImageSize = isize;
+pub const ImageSize = isize;
 
-const Locales = enum {
+pub const Locales = enum {
     id,
     da,
     de,
@@ -1298,7 +1298,7 @@ const Locales = enum {
 };
 
 /// https://discord.com/developers/docs/resources/user#user-object
-const User = struct {
+pub const User = struct {
     /// The user's username, not unique across the platform
     username: []const u8,
     /// The user's display name, if it is set. For bots, this is the application name
@@ -1336,7 +1336,7 @@ const User = struct {
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-const OAuth2Scope = enum {
+pub const OAuth2Scope = enum {
     ///
     /// Allows your app to fetch data from a user's "Now Playing/Recently Played" list
     ///
@@ -1465,7 +1465,7 @@ const OAuth2Scope = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#integration-object-integration-structure
-const Integration = struct {
+pub const Integration = struct {
     /// Integration Id
     id: []const u8,
     /// Integration name
@@ -1505,7 +1505,7 @@ const Integration = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#integration-account-object-integration-account-structure
-const IntegrationAccount = struct {
+pub const IntegrationAccount = struct {
     /// Id of the account
     id: []const u8,
     /// Name of the account
@@ -1513,7 +1513,7 @@ const IntegrationAccount = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#integration-application-object-integration-application-structure
-const IntegrationApplication = struct {
+pub const IntegrationApplication = struct {
     /// The id of the app
     id: []const u8,
     /// The name of the app
@@ -1527,7 +1527,7 @@ const IntegrationApplication = struct {
 };
 
 /// https://github.com/discord/discord-api-docs/blob/master/docs/topics/Gateway.md#integration-create-event-additional-fields
-const IntegrationCreateUpdate = struct {
+pub const IntegrationCreateUpdate = struct {
     /// Integration Id
     id: []const u8,
     /// Integration name
@@ -1569,7 +1569,7 @@ const IntegrationCreateUpdate = struct {
 };
 
 /// https://github.com/discord/discord-api-docs/blob/master/docs/topics/Gateway.md#integration-delete-event-fields
-const IntegrationDelete = struct {
+pub const IntegrationDelete = struct {
     /// Integration id
     id: []const u8,
     /// Id of the guild
@@ -1579,13 +1579,13 @@ const IntegrationDelete = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-integrations-update
-const GuildIntegrationsUpdate = struct {
+pub const GuildIntegrationsUpdate = struct {
     /// id of the guild whose integrations were updated
     guild_id: []const u8,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#typing-start
-const TypingStart = struct {
+pub const TypingStart = struct {
     /// Unix time (in seconds) of when the user started typing
     timestamp: isize,
     /// id of the channel
@@ -1599,7 +1599,7 @@ const TypingStart = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-member-object
-const Member = struct {
+pub const Member = struct {
     /// Whether the user is deafened in voice channels
     deaf: ?bool,
     /// Whether the user is muted in voice channels
@@ -1629,7 +1629,7 @@ const Member = struct {
 };
 
 /// https://discord.com/developers/docs/resources/user#avatar-decoration-data-object
-const AvatarDecorationData = struct {
+pub const AvatarDecorationData = struct {
     /// the avatar decoration hash
     asset: []const u8,
     /// id of the avatar decoration's SKU
@@ -1637,7 +1637,7 @@ const AvatarDecorationData = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#application-object
-const Application = struct {
+pub const Application = struct {
     /// The name of the app
     name: []const u8,
     /// The description of the app
@@ -1697,7 +1697,7 @@ const Application = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#application-object-application-integration-type-configuration-object
-const ApplicationIntegrationTypeConfiguration = struct {
+pub const ApplicationIntegrationTypeConfiguration = struct {
     ///
     /// Install params for each installation context's default in-app authorization link
     ///
@@ -1706,7 +1706,7 @@ const ApplicationIntegrationTypeConfiguration = struct {
     oauth2_install_params: ?InstallParams,
 };
 
-const ApplicationIntegrationType = enum(u4) {
+pub const ApplicationIntegrationType = enum(u4) {
     /// App is installable to servers
     GuildInstall = 0,
     /// App is installable to users
@@ -1714,9 +1714,9 @@ const ApplicationIntegrationType = enum(u4) {
 };
 
 /// TODO: implement
-const TokenExchange = null;
+pub const TokenExchange = null;
 
-const TokenExchangeAuthorizationCode = struct {
+pub const TokenExchangeAuthorizationCode = struct {
     grant_type: []const u8, //"authorization_code",
     /// The code for the token exchange
     code: []const u8,
@@ -1725,20 +1725,20 @@ const TokenExchangeAuthorizationCode = struct {
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#client-credentials-grant
-const TokenExchangeRefreshToken = struct {
+pub const TokenExchangeRefreshToken = struct {
     grant_type: "refresh_token",
     /// the user's refresh token
     refresh_token: []const u8,
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#client-credentials-grant
-const TokenExchangeClientCredentials = struct {
+pub const TokenExchangeClientCredentials = struct {
     grant_type: "client_credentials",
     /// The scope(s) for the access token
     scope: []OAuth2Scope,
 };
 
-const AccessTokenResponse = struct {
+pub const AccessTokenResponse = struct {
     /// The access token of the user
     access_token: []const u8,
     /// The type of token
@@ -1760,7 +1760,7 @@ const AccessTokenResponse = struct {
     guild: ?Guild,
 };
 
-const TokenRevocation = struct {
+pub const TokenRevocation = struct {
     /// The access token to revoke
     token: []const u8,
     /// Optional, the type of token you are using for the revocation
@@ -1768,7 +1768,7 @@ const TokenRevocation = struct {
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#get-current-authorization-information-response-structure
-const CurrentAuthorization = struct {
+pub const CurrentAuthorization = struct {
     application: Application,
     /// the scopes the user has authorized the application for
     scopes: []OAuth2Scope,
@@ -1779,7 +1779,7 @@ const CurrentAuthorization = struct {
 };
 
 /// https://discord.com/developers/docs/resources/user#connection-object-connection-structure
-const Connection = struct {
+pub const Connection = struct {
     /// id of the connection account
     id: []const u8,
     /// the username of the connection account
@@ -1803,7 +1803,7 @@ const Connection = struct {
 };
 
 /// https://discord.com/developers/docs/resources/user#connection-object-services
-const ConnectionServiceType = enum {
+pub const ConnectionServiceType = enum {
     @"amazon-music",
     battlenet,
     @"Bungie.net",
@@ -1830,7 +1830,7 @@ const ConnectionServiceType = enum {
 };
 
 //https://discord.com/developers/docs/resources/user#connection-object-visibility-types
-const ConnectionVisibility = enum(u4) {
+pub const ConnectionVisibility = enum(u4) {
     /// invisible to everyone except the user themselves
     None = 0,
     /// visible to everyone
@@ -1838,7 +1838,7 @@ const ConnectionVisibility = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/user#application-role-connection-object-application-role-connection-structure
-const ApplicationRoleConnection = struct {
+pub const ApplicationRoleConnection = struct {
     /// the vanity name of the platform a bot has connected (max 50 characters)
     platform_name: ?[]const u8,
     /// the username on the platform a bot has connected (max 100 characters)
@@ -1848,7 +1848,7 @@ const ApplicationRoleConnection = struct {
 };
 
 /// https://discord.com/developers/docs/topics/teams#data-models-team-object
-const Team = struct {
+pub const Team = struct {
     /// Hash of the image of the team's icon
     icon: ?[]const u8,
     /// Unique ID of the team
@@ -1862,7 +1862,7 @@ const Team = struct {
 };
 
 /// https://discord.com/developers/docs/topics/teams#data-models-team-members-object
-const TeamMember = struct {
+pub const TeamMember = struct {
     /// The user's membership state on the team
     membership_state: TeamMembershipStates,
     /// The id of the parent team of which they are a member
@@ -1884,7 +1884,7 @@ const TeamMember = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#webhooks-update-webhook-update-event-fields
-const WebhookUpdate = struct {
+pub const WebhookUpdate = struct {
     /// id of the guild
     guild_id: []const u8,
     /// id of the channel
@@ -1892,7 +1892,7 @@ const WebhookUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#allowed-mentions-object
-const AllowedMentions = struct {
+pub const AllowedMentions = struct {
     /// An array of allowed mention types to parse from the content.
     parse: []?AllowedMentionsTypes,
     /// For replies, whether to mention the author of the message being replied to (default false)
@@ -1904,7 +1904,7 @@ const AllowedMentions = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object
-const Embed = struct {
+pub const Embed = struct {
     /// Title of embed
     title: ?[]const u8,
     /// Type of embed (always "rich" for webhook embeds)
@@ -1934,7 +1934,7 @@ const Embed = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-author-structure
-const EmbedAuthor = struct {
+pub const EmbedAuthor = struct {
     /// Name of author
     name: []const u8,
     /// Url of author
@@ -1946,7 +1946,7 @@ const EmbedAuthor = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-field-structure
-const EmbedField = struct {
+pub const EmbedField = struct {
     /// Name of the field
     name: []const u8,
     /// Value of the field
@@ -1956,7 +1956,7 @@ const EmbedField = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
-const EmbedFooter = struct {
+pub const EmbedFooter = struct {
     /// Footer text
     text: []const u8,
     /// Url of footer icon (only supports http(s) and attachments)
@@ -1966,7 +1966,7 @@ const EmbedFooter = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-image-structure
-const EmbedImage = struct {
+pub const EmbedImage = struct {
     /// Source url of image (only supports http(s) and attachments)
     url: []const u8,
     /// A proxied url of the image
@@ -1977,7 +1977,7 @@ const EmbedImage = struct {
     width: ?isize,
 };
 
-const EmbedProvider = struct {
+pub const EmbedProvider = struct {
     /// Name of provider
     name: ?[]const u8,
     /// Url of provider
@@ -1985,7 +1985,7 @@ const EmbedProvider = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-thumbnail-structure
-const EmbedThumbnail = struct {
+pub const EmbedThumbnail = struct {
     /// Source url of thumbnail (only supports http(s) and attachments)
     url: []const u8,
     /// A proxied url of the thumbnail
@@ -1997,7 +1997,7 @@ const EmbedThumbnail = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-video-structure
-const EmbedVideo = struct {
+pub const EmbedVideo = struct {
     /// Source url of video
     url: ?[]const u8,
     /// A proxied url of the video
@@ -2009,7 +2009,7 @@ const EmbedVideo = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#attachment-object
-const Attachment = struct {
+pub const Attachment = struct {
     /// Name of file attached
     filename: []const u8,
     /// The title of the file
@@ -2042,9 +2042,9 @@ const Attachment = struct {
 
 /// https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-structure
 /// TODO: implement
-export const Webhook = null;
+pub const Webhook = null;
 
-const IncomingWebhook = struct {
+pub const IncomingWebhook = struct {
     /// The type of the webhook
     type: WebhookTypes,
     /// The secure token of the webhook (returned for Incoming Webhooks)
@@ -2072,7 +2072,7 @@ const IncomingWebhook = struct {
     source_channel: ?Partial(Channel),
 };
 
-const ApplicationWebhook = struct {
+pub const ApplicationWebhook = struct {
     /// The type of the webhook
     type: WebhookTypes.Application,
     /// The secure token of the webhook (returned for Incoming Webhooks)
@@ -2101,7 +2101,7 @@ const ApplicationWebhook = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-object
-const Guild = struct {
+pub const Guild = struct {
     /// Guild name (2-100 characters, excluding trailing and leading whitespace)
     name: []const u8,
     /// True if the user is the owner of the guild
@@ -2209,7 +2209,7 @@ const Guild = struct {
 };
 
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-structure
-const Role = struct {
+pub const Role = struct {
     /// Role id
     id: []const u8,
     /// If this role is showed separately in the user listing
@@ -2237,7 +2237,7 @@ const Role = struct {
 };
 
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
-const RoleTags = struct {
+pub const RoleTags = struct {
     /// The id of the bot this role belongs to
     bot_id: ?[]const u8,
     /// The id of the integration this role belongs to
@@ -2253,7 +2253,7 @@ const RoleTags = struct {
 };
 
 /// https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
-const Emoji = struct {
+pub const Emoji = struct {
     /// Emoji name (can only be null in reaction emoji objects)
     name: ?[]const u8,
     /// Emoji id
@@ -2273,7 +2273,7 @@ const Emoji = struct {
 };
 
 /// https://discord.com/developers/docs/resources/voice#voice-state-object-voice-state-structure
-const VoiceState = struct {
+pub const VoiceState = struct {
     /// The session id for this voice state
     session_id: []const u8,
     /// The guild id this voice state is for
@@ -2303,7 +2303,7 @@ const VoiceState = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#channel-object
-const Channel = struct {
+pub const Channel = struct {
     /// The id of the channel
     id: []const u8,
     /// The type of channel
@@ -2379,7 +2379,7 @@ const Channel = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#presence-update
-const PresenceUpdate = struct {
+pub const PresenceUpdate = struct {
     /// Either "idle", "dnd", "online", or "offline"
     status: union(enum) {
         idle,
@@ -2398,7 +2398,7 @@ const PresenceUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-structure
-const WelcomeScreen = struct {
+pub const WelcomeScreen = struct {
     /// The server description shown in the welcome screen
     description: ?[]const u8,
     /// The channels shown in the welcome screen, up to 5
@@ -2406,7 +2406,7 @@ const WelcomeScreen = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-channel-structure
-const WelcomeScreenChannel = struct {
+pub const WelcomeScreenChannel = struct {
     /// The description shown for the channel
     description: []const u8,
     /// The channel's id
@@ -2418,7 +2418,7 @@ const WelcomeScreenChannel = struct {
 };
 
 /// https://discord.com/developers/docs/resources/stage-instance#auto-closing-stage-instance-structure
-const StageInstance = struct {
+pub const StageInstance = struct {
     /// The topic of the Stage instance (1-120 characters)
     topic: []const u8,
     /// The id of this Stage instance
@@ -2431,7 +2431,7 @@ const StageInstance = struct {
     guild_scheduled_event_id: ?[]const u8,
 };
 
-const ThreadMetadata = struct {
+pub const ThreadMetadata = struct {
     /// Whether the thread is archived
     archived: bool,
     /// Duration in minutes to automatically archive the thread after recent activity
@@ -2446,7 +2446,7 @@ const ThreadMetadata = struct {
     create_timestamp: ?[]const u8,
 };
 
-const ThreadMember = struct {
+pub const ThreadMember = struct {
     /// Any user-thread settings, currently only used for notifications
     flags: isize,
     /// The id of the thread
@@ -2458,7 +2458,7 @@ const ThreadMember = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#activity-object
-const Activity = struct {
+pub const Activity = struct {
     /// The activity's name
     name: []const u8,
     /// Activity type
@@ -2492,7 +2492,7 @@ const Activity = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object
-const ActivityInstance = struct {
+pub const ActivityInstance = struct {
     /// Application ID
     application_id: []const u8,
     /// Activity Instance ID
@@ -2506,7 +2506,7 @@ const ActivityInstance = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-object
-const ActivityLocation = struct {
+pub const ActivityLocation = struct {
     /// The unique identifier for the location
     id: []const u8,
     /// Enum describing kind of location
@@ -2518,7 +2518,7 @@ const ActivityLocation = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-kind-enum
-const ActivityLocationKind = enum {
+pub const ActivityLocationKind = enum {
     /// The Location is a Guild Channel
     gc,
     /// The Location is a Private Channel, such as a DM or GDM
@@ -2526,7 +2526,7 @@ const ActivityLocationKind = enum {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#client-status-object
-const ClientStatus = struct {
+pub const ClientStatus = struct {
     /// The user's status set for an active desktop (Windows, Linux, Mac) application session
     desktop: ?[]const u8,
     /// The user's status set for an active mobile (iOS, Android) application session
@@ -2536,7 +2536,7 @@ const ClientStatus = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-timestamps
-const ActivityTimestamps = struct {
+pub const ActivityTimestamps = struct {
     /// Unix time (in milliseconds) of when the activity started
     start: ?isize,
     /// Unix time (in milliseconds) of when the activity ends
@@ -2544,7 +2544,7 @@ const ActivityTimestamps = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-emoji
-const ActivityEmoji = struct {
+pub const ActivityEmoji = struct {
     /// The name of the emoji
     name: []const u8,
     /// Whether this emoji is animated
@@ -2554,7 +2554,7 @@ const ActivityEmoji = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-party
-const ActivityParty = struct {
+pub const ActivityParty = struct {
     /// Used to show the party's current and maximum size
     size: ?[2]i64,
     /// The id of the party
@@ -2562,7 +2562,7 @@ const ActivityParty = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-assets
-const ActivityAssets = struct {
+pub const ActivityAssets = struct {
     /// Text displayed when hovering over the large image of the activity
     large_text: ?[]const u8,
     /// Text displayed when hovering over the small image of the activity
@@ -2574,7 +2574,7 @@ const ActivityAssets = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-secrets
-const ActivitySecrets = struct {
+pub const ActivitySecrets = struct {
     /// The secret for joining a party
     join: ?[]const u8,
     /// The secret for spectating a game
@@ -2584,14 +2584,14 @@ const ActivitySecrets = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-buttons
-const ActivityButton = struct {
+pub const ActivityButton = struct {
     /// The text shown on the button (1-32 characters)
     label: []const u8,
     /// The url opened when clicking the button (1-512 characters)
     url: []const u8,
 };
 
-const Overwrite = struct {
+pub const Overwrite = struct {
     /// Either 0 (role) or 1 (member)
     type: OverwriteTypes,
     /// Role or user id
@@ -2603,7 +2603,7 @@ const Overwrite = struct {
 };
 
 /// inherits
-const MemberWithUser = struct {
+pub const MemberWithUser = struct {
     /// Whether the user is deafened in voice channels
     deaf: ?bool,
     /// Whether the user is muted in voice channels
@@ -2632,10 +2632,10 @@ const MemberWithUser = struct {
     user: User,
 };
 
-const MessageComponent = noreturn;
+pub const MessageComponent = noreturn;
 
 /// https://discord.com/developers/docs/resources/channel#message-object
-const Message = struct {
+pub const Message = struct {
     /// id of the message
     id: []const u8,
     /// id of the channel the message was sent in
@@ -2776,7 +2776,7 @@ const Message = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-call-object
-const MessageCall = struct {
+pub const MessageCall = struct {
     /// Array of user object ids that participated in the call
     participants: [][]const u8,
     /// Time when call ended
@@ -2784,7 +2784,7 @@ const MessageCall = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#channel-mention-object
-const ChannelMention = struct {
+pub const ChannelMention = struct {
     /// id of the channel
     id: []const u8,
     /// id of the guild containing the channel
@@ -2796,7 +2796,7 @@ const ChannelMention = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#reaction-object
-const Reaction = struct {
+pub const Reaction = struct {
     /// Total isize of times this emoji has been used to react (including super reacts)
     count: isize,
     ///
@@ -2812,13 +2812,13 @@ const Reaction = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#get-reactions-reaction-types
-const ReactionType = enum {
+pub const ReactionType = enum {
     Normal,
     Burst,
 };
 
 /// https://discord.com/developers/docs/resources/channel#reaction-count-details-object
-const ReactionCountDetails = struct {
+pub const ReactionCountDetails = struct {
     /// Count of super reactions
     burst: isize,
     ///
@@ -2826,7 +2826,7 @@ const ReactionCountDetails = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-activity-structure
-const MessageActivity = struct {
+pub const MessageActivity = struct {
     /// Type of message activity
     type: MessageActivityTypes,
     /// `party_id` from a Rich Presence event
@@ -2834,7 +2834,7 @@ const MessageActivity = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-reference-structure
-const MessageReference = struct {
+pub const MessageReference = struct {
     /// Type of reference
     type: ?MessageReferenceType,
     /// id of the originating message
@@ -2851,7 +2851,7 @@ const MessageReference = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-reference-object-message-reference-types
-const MessageReferenceType = enum {
+pub const MessageReferenceType = enum {
     ///
     /// A standard reference used by replies.
     ///
@@ -2873,7 +2873,7 @@ const MessageReferenceType = enum {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-snapshot-object-message-snapshot-structure
-const MessageSnapshot = struct {
+pub const MessageSnapshot = struct {
     /// https://discord.com/developers/docs/resources/channel#message-object
     /// Minimal subset of fields in the forwarded message
     message: struct {
@@ -2912,7 +2912,7 @@ const MessageSnapshot = struct {
 };
 
 /// https://discord.com/developers/docs/resources/poll#poll-object
-const Poll = struct {
+pub const Poll = struct {
     /// The question of the poll. Only `text` is supported.
     question: PollMedia,
     /// Each of the answers available in the poll. There is a maximum of 10 answers per poll.
@@ -2939,13 +2939,13 @@ const Poll = struct {
 };
 
 /// https://discord.com/developers/docs/resources/poll#layout-type
-const PollLayoutType = enum(u4) {
+pub const PollLayoutType = enum(u4) {
     /// The default layout
     Default = 1,
 };
 
 /// https://discord.com/developers/docs/resources/poll#poll-media-object
-const PollMedia = struct {
+pub const PollMedia = struct {
     ///
     /// The text of the field
     ///
@@ -2964,7 +2964,7 @@ const PollMedia = struct {
 };
 
 /// https://discord.com/developers/docs/resources/poll#poll-answer-object
-const PollAnswer = struct {
+pub const PollAnswer = struct {
     ///
     /// The id of the answer
     ///
@@ -2976,7 +2976,7 @@ const PollAnswer = struct {
     poll_media: PollMedia,
 };
 
-const PollAnswerCount = struct {
+pub const PollAnswerCount = struct {
     ///The {@link PollAnswer.answer_id | answer_id};
     id: isize,
     /// The isize of votes for this answer
@@ -2986,7 +2986,7 @@ const PollAnswerCount = struct {
 };
 
 /// https://discord.com/developers/docs/resources/poll#poll-results-object
-const PollResult = struct {
+pub const PollResult = struct {
     /// Whether the votes have been precisely counted
     is_finalized: bool,
     /// The counts for each answer
@@ -2994,13 +2994,13 @@ const PollResult = struct {
 };
 
 /// https://discord.com/developers/docs/resources/poll#get-answer-voters-response-body
-const GetAnswerVotesResponse = struct {
+pub const GetAnswerVotesResponse = struct {
     /// Users who voted for this answer
     users: []User,
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#message-poll-vote-add
-const PollVoteAdd = struct {
+pub const PollVoteAdd = struct {
     /// ID of the user. Usually a snowflake
     user_id: []const u8,
     /// ID of the channel. Usually a snowflake
@@ -3014,7 +3014,7 @@ const PollVoteAdd = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#message-poll-vote-remove
-const PollVoteRemove = struct {
+pub const PollVoteRemove = struct {
     /// ID of the user. Usually a snowflake
     user_id: []const u8,
     /// ID of the channel. Usually a snowflake
@@ -3028,7 +3028,7 @@ const PollVoteRemove = struct {
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-structure
-const Sticker = struct {
+pub const Sticker = struct {
     /// [Id of the sticker](https://discord.com/developers/docs/reference#image-formatting)
     id: []const u8,
     /// Id of the pack the sticker is from
@@ -3054,7 +3054,7 @@ const Sticker = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
-const MessageInteraction = struct {
+pub const MessageInteraction = struct {
     /// Id of the interaction
     id: []const u8,
     /// The type of interaction
@@ -3068,7 +3068,7 @@ const MessageInteraction = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-interaction-metadata-object-message-interaction-metadata-structure
-const MessageInteractionMetadata = struct {
+pub const MessageInteractionMetadata = struct {
     /// Id of the interaction
     id: []const u8,
     /// The type of interaction
@@ -3086,7 +3086,7 @@ const MessageInteractionMetadata = struct {
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
-const StickerItem = struct {
+pub const StickerItem = struct {
     /// Id of the sticker
     id: []const u8,
     /// Name of the sticker
@@ -3096,7 +3096,7 @@ const StickerItem = struct {
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-pack-object-sticker-pack-structure
-const StickerPack = struct {
+pub const StickerPack = struct {
     /// id of the sticker pack
     id: []const u8,
     /// the stickers in the pack
@@ -3113,7 +3113,7 @@ const StickerPack = struct {
     banner_asset_id: ?[]const u8,
 };
 
-const Interaction = struct {
+pub const Interaction = struct {
     /// Id of the interaction
     id: []const u8,
     /// Id of the application this interaction is for
@@ -3160,7 +3160,7 @@ const Interaction = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-response-object
-const InteractionCallbackResponse = struct {
+pub const InteractionCallbackResponse = struct {
     /// The interaction object associated with the interaction response
     interaction: InteractionCallback,
     /// The resource that was created by the interaction response.
@@ -3168,7 +3168,7 @@ const InteractionCallbackResponse = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-object
-const InteractionCallback = struct {
+pub const InteractionCallback = struct {
     /// ID of the interaction
     id: []const u8,
     /// Interaction type
@@ -3184,7 +3184,7 @@ const InteractionCallback = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-resource-object
-const InteractionResource = struct {
+pub const InteractionResource = struct {
     type: InteractionResponseTypes,
     ///
     /// Represents the Activity launched by this interaction.
@@ -3203,13 +3203,13 @@ const InteractionResource = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-activity-instance-resource
-const ActivityInstanceResource = struct {
+pub const ActivityInstanceResource = struct {
     /// Instance ID of the Activity if one was launched or joined.
     id: []const u8,
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-member-object
-const InteractionMember = struct {
+pub const InteractionMember = struct {
     /// Whether the user is deafened in voice channels
     deaf: ?bool,
     /// Whether the user is muted in voice channels
@@ -3238,7 +3238,7 @@ const InteractionMember = struct {
     permissions: []const u8,
 };
 
-const InteractionData = struct {
+pub const InteractionData = struct {
     /// The type of component
     component_type: ?MessageComponentTypes,
     /// The custom id provided for this component.
@@ -3281,7 +3281,7 @@ const InteractionData = struct {
     guild_id: ?[]const u8,
 };
 
-const InteractionDataOption = struct {
+pub const InteractionDataOption = struct {
     /// Name of the parameter
     name: []const u8,
     /// Value of application command option type
@@ -3298,14 +3298,14 @@ const InteractionDataOption = struct {
     focused: ?bool,
 };
 
-const ListActiveThreads = struct {
+pub const ListActiveThreads = struct {
     /// The active threads
     threads: []Channel,
     /// A thread member object for each returned thread the current user has joined
     members: []ThreadMember,
 };
 
-const ListArchivedThreads = struct {
+pub const ListArchivedThreads = struct {
     /// The active threads
     threads: []Channel,
     /// A thread member object for each returned thread the current user has joined
@@ -3314,7 +3314,7 @@ const ListArchivedThreads = struct {
     has_more: bool,
 };
 
-const ThreadListSync = struct {
+pub const ThreadListSync = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// The parent channel ids whose threads are being synced. If omitted, then threads were synced for the entire guild. This array may contain channelIds that have no active threads as well, so you know to clear that data
@@ -3326,7 +3326,7 @@ const ThreadListSync = struct {
 };
 
 /// https://discord.com/developers/docs/resources/audit-log#audit-log-object
-const AuditLog = struct {
+pub const AuditLog = struct {
     /// List of webhooks found in the audit log
     webhooks: []Webhook,
     /// List of users found in the audit log
@@ -3349,7 +3349,7 @@ const AuditLog = struct {
 };
 
 /// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object
-const AutoModerationRule = struct {
+pub const AutoModerationRule = struct {
     /// The id of this rule
     id: []const u8,
     /// The guild id of the rule
@@ -3374,14 +3374,14 @@ const AutoModerationRule = struct {
     exempt_channels: [][]const u8,
 };
 
-const AutoModerationEventTypes = enum(u4) {
+pub const AutoModerationEventTypes = enum(u4) {
     /// When a user sends a message
     MessageSend = 1,
     /// Wen a member edits their profile
     MemberUpdate,
 };
 
-const AutoModerationTriggerTypes = enum(u4) {
+pub const AutoModerationTriggerTypes = enum(u4) {
     /// Check if content contains words from a user defined list of keywords. Max 6 per guild
     Keyword = 1,
     /// Check if content represents generic spam. Max 1 per guild
@@ -3394,7 +3394,7 @@ const AutoModerationTriggerTypes = enum(u4) {
     MemberProfile,
 };
 
-const AutoModerationRuleTriggerMetadata = struct {
+pub const AutoModerationRuleTriggerMetadata = struct {
     ///
     /// The keywords needed to match.
     ///
@@ -3448,7 +3448,7 @@ const AutoModerationRuleTriggerMetadata = struct {
     mention_raid_protection_enabled: ?bool,
 };
 
-const AutoModerationRuleTriggerMetadataPresets = enum(u4) {
+pub const AutoModerationRuleTriggerMetadataPresets = enum(u4) {
     /// Words that may be considered forms of swearing or cursing
     Profanity = 1,
     /// Words that refer to sexually explicit behavior or activity
@@ -3457,14 +3457,14 @@ const AutoModerationRuleTriggerMetadataPresets = enum(u4) {
     Slurs,
 };
 
-const AutoModerationAction = struct {
+pub const AutoModerationAction = struct {
     /// The type of action to take when a rule is triggered
     type: AutoModerationActionType,
     /// additional metadata needed during execution for this specific action type
     metadata: AutoModerationActionMetadata,
 };
 
-const AutoModerationActionType = enum(u4) {
+pub const AutoModerationActionType = enum(u4) {
     /// Blocks the content of a message according to the rule
     BlockMessage = 1,
     /// Logs user content to a specified channel
@@ -3482,7 +3482,7 @@ const AutoModerationActionType = enum(u4) {
     BlockMemberInteraction,
 };
 
-const AutoModerationActionMetadata = struct {
+pub const AutoModerationActionMetadata = struct {
     /// The id of channel to which user content should be logged. Only in ActionType.SendAlertMessage
     channel_id: ?[]const u8,
     /// Additional explanation that will be shown to members whenever their message is blocked. Maximum of 150 characters. Only supported for AutoModerationActionType.BlockMessage
@@ -3492,7 +3492,7 @@ const AutoModerationActionMetadata = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#auto-moderation-action-execution-auto-moderation-action-execution-event-fields
-const AutoModerationActionExecution = struct {
+pub const AutoModerationActionExecution = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// The id of the rule that was executed
@@ -3518,7 +3518,7 @@ const AutoModerationActionExecution = struct {
 };
 
 /// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-entry-structure
-const AuditLogEntry = struct {
+pub const AuditLogEntry = struct {
     /// ID of the affected entity (webhook, user, role, etc.)
     target_id: ?[]const u8,
     /// Changes made to the `target_id`
@@ -3541,7 +3541,7 @@ pub fn AuditLogChange(comptime T: type) type {
 }
 
 /// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-optional-audit-entry-info
-const OptionalAuditEntryInfo = struct {
+pub const OptionalAuditEntryInfo = struct {
     ///
     /// ID of the app whose permissions were targeted.
     ///
@@ -3616,7 +3616,7 @@ const OptionalAuditEntryInfo = struct {
     integration_type: ?[]const u8,
 };
 
-const ScheduledEvent = struct {
+pub const ScheduledEvent = struct {
     /// the id of the scheduled event
     id: []const u8,
     /// the guild id which the scheduled event belongs to
@@ -3653,12 +3653,12 @@ const ScheduledEvent = struct {
     recurrence_rule: ?ScheduledEventRecurrenceRule,
 };
 
-const ScheduledEventEntityMetadata = struct {
+pub const ScheduledEventEntityMetadata = struct {
     /// location of the event
     location: ?[]const u8,
 };
 
-const ScheduledEventRecurrenceRule = struct {
+pub const ScheduledEventRecurrenceRule = struct {
     /// Starting time of the recurrence interval
     start: []const u8,
     /// Ending time of the recurrence interval
@@ -3681,14 +3681,14 @@ const ScheduledEventRecurrenceRule = struct {
     count: ?isize,
 };
 
-const ScheduledEventRecurrenceRuleFrequency = enum {
+pub const ScheduledEventRecurrenceRuleFrequency = enum {
     Yearly,
     Monthly,
     Weekly,
     Daily,
 };
 
-const ScheduledEventRecurrenceRuleWeekday = enum {
+pub const ScheduledEventRecurrenceRuleWeekday = enum {
     Monday,
     Tuesday,
     Wednesday,
@@ -3698,14 +3698,14 @@ const ScheduledEventRecurrenceRuleWeekday = enum {
     Sunday,
 };
 
-const ScheduledEventRecurrenceRuleNWeekday = struct {
+pub const ScheduledEventRecurrenceRuleNWeekday = struct {
     /// The week to reoccur on. 1 - 5
     n: isize,
     /// The day within the week to reoccur on
     day: ScheduledEventRecurrenceRuleWeekday,
 };
 
-const ScheduledEventRecurrenceRuleMonth = enum(u4) {
+pub const ScheduledEventRecurrenceRuleMonth = enum(u4) {
     January = 1,
     February,
     March,
@@ -3721,7 +3721,7 @@ const ScheduledEventRecurrenceRuleMonth = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
-const GetGatewayBot = struct {
+pub const GetGatewayBot = struct {
     /// The WSS URL that can be used for connecting to the gateway
     url: []const u8,
     /// The recommended isize of shards to use when connecting
@@ -3731,7 +3731,7 @@ const GetGatewayBot = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#session-start-limit-object
-const SessionStartLimit = struct {
+pub const SessionStartLimit = struct {
     /// The total isize of session starts the current user is allowed
     total: isize,
     /// The remaining isize of session starts the current user is allowed
@@ -3743,7 +3743,7 @@ const SessionStartLimit = struct {
 };
 
 /// https://discord.com/developers/docs/resources/invite#invite-metadata-object
-const InviteMetadata = struct {
+pub const InviteMetadata = struct {
     /// The type of invite
     type: InviteType,
     /// The invite code (unique Id)
@@ -3783,7 +3783,7 @@ const InviteMetadata = struct {
 };
 
 /// https://discord.com/developers/docs/resources/invite#invite-object
-const Invite = struct {
+pub const Invite = struct {
     /// The type of invite
     type: InviteType,
     /// The invite code (unique Id)
@@ -3812,13 +3812,13 @@ const Invite = struct {
     guild_scheduled_event: ?ScheduledEvent,
 };
 
-const InviteType = enum {
+pub const InviteType = enum {
     Guild,
     GroupDm,
     Friend,
 };
 
-const InviteStageInstance = struct {
+pub const InviteStageInstance = struct {
     /// The members speaking in the Stage
     members: []Partial(Member),
     /// The isize of users in the Stage
@@ -3830,7 +3830,7 @@ const InviteStageInstance = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
-const ApplicationCommand = struct {
+pub const ApplicationCommand = struct {
     /// Type of command, defaults to `ApplicationCommandTypes.ChatInput`
     type: ?ApplicationCommandTypes,
     ///
@@ -3892,7 +3892,7 @@ const ApplicationCommand = struct {
     guild_id: ?[]const u8,
 };
 
-const CreateApplicationCommand = struct {
+pub const CreateApplicationCommand = struct {
     /// Type of command, defaults to `ApplicationCommandTypes.ChatInput`
     type: ?ApplicationCommandTypes,
     ///
@@ -3948,7 +3948,7 @@ const CreateApplicationCommand = struct {
     handler: ?InteractionEntryPointCommandHandlerType,
 };
 
-const InteractionEntryPointCommandHandlerType = enum(u4) {
+pub const InteractionEntryPointCommandHandlerType = enum(u4) {
     /// The app handles the interaction using an interaction token
     AppHandler = 1,
     /// handles the interaction by launching an Activity and sending a follow-up message without coordinating with the app
@@ -3956,7 +3956,7 @@ const InteractionEntryPointCommandHandlerType = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure
-const ApplicationCommandOption = struct {
+pub const ApplicationCommandOption = struct {
     /// Type of option
     type: ApplicationCommandOptionTypes,
     ///
@@ -4048,7 +4048,7 @@ const ApplicationCommandOption = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object
-const ApplicationCommandOptionChoice = struct {
+pub const ApplicationCommandOptionChoice = struct {
     /// 1-100 character choice name
     name: []const u8,
     /// Localization object for the `name` field. Values follow the same restrictions as `name`
@@ -4061,7 +4061,7 @@ const ApplicationCommandOptionChoice = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/slash-commands#guildapplicationcommandpermissions
-const GuildApplicationCommandPermissions = struct {
+pub const GuildApplicationCommandPermissions = struct {
     /// ID of the command or the application ID. When the `id` field is the application ID instead of a command ID, the permissions apply to all commands that do not contain explicit overwrites.
     id: []const u8,
     /// ID of the application the command belongs to
@@ -4073,7 +4073,7 @@ const GuildApplicationCommandPermissions = struct {
 };
 
 /// https://discord.com/developers/docs/interactions/slash-commands#applicationcommandpermissions
-const ApplicationCommandPermissions = struct {
+pub const ApplicationCommandPermissions = struct {
     /// ID of the role, user, or channel. It can also be a permission constant
     id: []const u8,
     /// ApplicationCommandPermissionTypes.Role, ApplicationCommandPermissionTypes.User, or ApplicationCommandPermissionTypes.Channel
@@ -4083,7 +4083,7 @@ const ApplicationCommandPermissions = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#get-guild-widget-example-get-guild-widget
-const GuildWidget = struct {
+pub const GuildWidget = struct {
     id: []const u8,
     name: []const u8,
     instant_invite: []const u8,
@@ -4104,7 +4104,7 @@ const GuildWidget = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-preview-object
-const GuildPreview = struct {
+pub const GuildPreview = struct {
     /// Guild id
     id: []const u8,
     /// Guild name (2-100 characters)
@@ -4130,7 +4130,7 @@ const GuildPreview = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#followed-channel-object
-const FollowedChannel = struct {
+pub const FollowedChannel = struct {
     /// Source message id
     channel_id: []const u8,
     /// Created target webhook id
@@ -4154,7 +4154,7 @@ pub fn GatewayPayload(comptime T: type) type {
 }
 
 /// https://discord.com/developers/docs/topics/gateway#guild-members-chunk
-const GuildMembersChunk = struct {
+pub const GuildMembersChunk = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// Set of guild members
@@ -4172,7 +4172,7 @@ const GuildMembersChunk = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#channel-pins-update
-const ChannelPinsUpdate = struct {
+pub const ChannelPinsUpdate = struct {
     /// The id of the guild
     guild_id: ?[]const u8,
     /// The id of the channel
@@ -4182,7 +4182,7 @@ const ChannelPinsUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-role-delete
-const GuildRoleDelete = struct {
+pub const GuildRoleDelete = struct {
     /// id of the guild
     guild_id: []const u8,
     /// id of the role
@@ -4190,7 +4190,7 @@ const GuildRoleDelete = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-ban-add
-const GuildBanAddRemove = struct {
+pub const GuildBanAddRemove = struct {
     /// id of the guild
     guild_id: []const u8,
     /// The banned user
@@ -4198,7 +4198,7 @@ const GuildBanAddRemove = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove
-const MessageReactionRemove = struct {
+pub const MessageReactionRemove = struct {
     /// The id of the user
     user_id: []const u8,
     /// The id of the channel
@@ -4218,7 +4218,7 @@ const MessageReactionRemove = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-add
-const MessageReactionAdd = struct {
+pub const MessageReactionAdd = struct {
     /// The id of the user
     user_id: []const u8,
     /// The id of the channel
@@ -4242,7 +4242,7 @@ const MessageReactionAdd = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#voice-server-update
-const VoiceServerUpdate = struct {
+pub const VoiceServerUpdate = struct {
     /// Voice connection token
     token: []const u8,
     /// The guild this voice server update is for
@@ -4252,7 +4252,7 @@ const VoiceServerUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#voice-channel-effect-send-voice-channel-effect-send-event-fields
-const VoiceChannelEffectSend = struct {
+pub const VoiceChannelEffectSend = struct {
     /// ID of the channel the effect was sent in
     channel_id: []const u8,
     /// ID of the guild the effect was sent in
@@ -4275,7 +4275,7 @@ const VoiceChannelEffectSend = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#voice-channel-effect-send-animation-types
-const VoiceChannelEffectAnimationType = enum(u4) {
+pub const VoiceChannelEffectAnimationType = enum(u4) {
     /// A fun animation, sent by a Nitro subscriber
     Premium = 0,
     /// The standard animation
@@ -4283,7 +4283,7 @@ const VoiceChannelEffectAnimationType = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#invite-create
-const InviteCreate = struct {
+pub const InviteCreate = struct {
     /// The channel the invite is for
     channel_id: []const u8,
     /// The unique invite code
@@ -4311,13 +4311,13 @@ const InviteCreate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#hello
-const Hello = struct {
+pub const Hello = struct {
     /// The interval (in milliseconds) the client should heartbeat with
     heartbeat_interval: isize,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#ready
-const Ready = struct {
+pub const Ready = struct {
     /// Gateway version
     v: isize,
     /// Information about the user including email
@@ -4365,13 +4365,13 @@ const Ready = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
-const UnavailableGuild = struct {
+pub const UnavailableGuild = struct {
     unavailable: ?bool,
     id: []const u8,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-delete-bulk
-const MessageDeleteBulk = struct {
+pub const MessageDeleteBulk = struct {
     /// The ids of the messages
     ids: [][]const u8,
     /// The id of the channel
@@ -4381,7 +4381,7 @@ const MessageDeleteBulk = struct {
 };
 
 /// https://discord.com/developers/docs/resources/template#template-object-template-structure
-const Template = struct {
+pub const Template = struct {
     /// The template code (unique Id)
     code: []const u8,
     /// Template name
@@ -4405,10 +4405,10 @@ const Template = struct {
     is_dirty: ?bool,
 };
 
-const TemplateSerializedSourceGuild = null;
+pub const TemplateSerializedSourceGuild = null;
 
 /// https://discord.com/developers/docs/topics/gateway#guild-member-add
-const GuildMemberAdd = struct {
+pub const GuildMemberAdd = struct {
     /// Whether the user is deafened in voice channels
     deaf: ?bool,
     /// Whether the user is muted in voice channels
@@ -4440,7 +4440,7 @@ const GuildMemberAdd = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-delete
-const MessageDelete = struct {
+pub const MessageDelete = struct {
     /// The id of the message
     id: []const u8,
     /// The id of the channel
@@ -4450,7 +4450,7 @@ const MessageDelete = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#thread-members-update-thread-members-update-event-fields
-const ThreadMembersUpdate = struct {
+pub const ThreadMembersUpdate = struct {
     /// The id of the thread
     id: []const u8,
     /// The id of the guild
@@ -4464,7 +4464,7 @@ const ThreadMembersUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#thread-member-update
-const ThreadMemberUpdate = struct {
+pub const ThreadMemberUpdate = struct {
     /// The id of the thread
     id: []const u8,
     /// The id of the guild
@@ -4476,7 +4476,7 @@ const ThreadMemberUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-role-create
-const GuildRoleCreate = struct {
+pub const GuildRoleCreate = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// The role created
@@ -4484,7 +4484,7 @@ const GuildRoleCreate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-emojis-update
-const GuildEmojisUpdate = struct {
+pub const GuildEmojisUpdate = struct {
     /// id of the guild
     guild_id: []const u8,
     /// Array of emojis
@@ -4492,7 +4492,7 @@ const GuildEmojisUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#guild-stickers-update
-const GuildStickersUpdate = struct {
+pub const GuildStickersUpdate = struct {
     /// id of the guild
     guild_id: []const u8,
     /// Array of sticker
@@ -4500,7 +4500,7 @@ const GuildStickersUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-member-update
-const GuildMemberUpdate = struct {
+pub const GuildMemberUpdate = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// User role ids
@@ -4530,17 +4530,17 @@ const GuildMemberUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove-all
-const MessageReactionRemoveAll = null;
+pub const MessageReactionRemoveAll = null;
 
 /// https://discord.com/developers/docs/topics/gateway#guild-role-update
-const GuildRoleUpdate = struct {
+pub const GuildRoleUpdate = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// The role updated
     role: Role,
 };
 
-const ScheduledEventUserAdd = struct {
+pub const ScheduledEventUserAdd = struct {
     /// id of the guild scheduled event
     guild_scheduled_event_id: []const u8,
     /// id of the user
@@ -4550,10 +4550,10 @@ const ScheduledEventUserAdd = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove-emoji
-const MessageReactionRemoveEmoji = null;
+pub const MessageReactionRemoveEmoji = null;
 
 /// https://discord.com/developers/docs/topics/gateway#guild-member-remove
-const GuildMemberRemove = struct {
+pub const GuildMemberRemove = struct {
     /// The id of the guild
     guild_id: []const u8,
     /// The user who was removed
@@ -4561,14 +4561,14 @@ const GuildMemberRemove = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#ban-object
-const Ban = struct {
+pub const Ban = struct {
     /// The reason for the ban
     reason: ?[]const u8,
     /// The banned user
     user: User,
 };
 
-const ScheduledEventUserRemove = struct {
+pub const ScheduledEventUserRemove = struct {
     /// id of the guild scheduled event
     guild_scheduled_event_id: []const u8,
     /// id of the user
@@ -4578,7 +4578,7 @@ const ScheduledEventUserRemove = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#invite-delete
-const InviteDelete = struct {
+pub const InviteDelete = struct {
     /// The channel of the invite
     channel_id: []const u8,
     /// The guild of the invite
@@ -4588,7 +4588,7 @@ const InviteDelete = struct {
 };
 
 /// https://discord.com/developers/docs/resources/voice#voice-region-object-voice-region-structure
-const VoiceRegion = struct {
+pub const VoiceRegion = struct {
     /// Unique Id for the region
     id: []const u8,
     /// Name of the region
@@ -4601,21 +4601,21 @@ const VoiceRegion = struct {
     custom: bool,
 };
 
-const GuildWidgetSettings = struct {
+pub const GuildWidgetSettings = struct {
     /// whether the widget is enabled
     enabled: bool,
     /// the widget channel id
     channel_id: ?[]const u8,
 };
 
-const InstallParams = struct {
+pub const InstallParams = struct {
     /// Scopes to add the application to the server with
     scopes: []OAuth2Scope,
     /// Permissions to request for the bot role
     permissions: []const u8,
 };
 
-const ForumTag = struct {
+pub const ForumTag = struct {
     /// The id of the tag
     id: []const u8,
     /// The name of the tag (0-20 characters)
@@ -4628,14 +4628,14 @@ const ForumTag = struct {
     emoji_name: ?[]const u8,
 };
 
-const DefaultReactionEmoji = struct {
+pub const DefaultReactionEmoji = struct {
     /// The id of a guild's custom emoji
     emoji_id: []const u8,
     /// The unicode character of the emoji
     emoji_name: ?[]const u8,
 };
 
-const ModifyChannel = struct {
+pub const ModifyChannel = struct {
     /// 1-100 character channel name
     name: ?[]const u8,
     /// The type of channel; only conversion between text and news is supported and only in guilds with the "NEWS" feature
@@ -4699,7 +4699,7 @@ const ModifyChannel = struct {
 };
 
 /// https://discord.com/developers/docs/resources/emoji#create-guild-emoji
-const CreateGuildEmoji = struct {
+pub const CreateGuildEmoji = struct {
     /// Name of the emoji
     name: []const u8,
     ///The 128x128 emoji image. Emojis and animated emojis have a maximum file size of 256kb. Attempting to upload an emoji larger than this limit will fail and return 400 Bad Request and an error message, but not a JSON status code. If a URL is provided to the image parameter, eno will automatically convert it to a base64 []const u8 internally.
@@ -4709,14 +4709,14 @@ const CreateGuildEmoji = struct {
 };
 
 /// https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
-const ModifyGuildEmoji = struct {
+pub const ModifyGuildEmoji = struct {
     /// Name of the emoji
     name: ?[]const u8,
     /// Roles allowed to use this emoji
     roles: []?[]const u8,
 };
 
-const CreateGuildChannel = struct {
+pub const CreateGuildChannel = struct {
     /// Channel name (1-100 characters)
     name: []const u8,
     /// The type of channel
@@ -4763,7 +4763,7 @@ const CreateGuildChannel = struct {
     default_sort_order: ?SortOrderTypes,
 };
 
-const CreateMessage = struct {
+pub const CreateMessage = struct {
     /// The message contents (up to 2000 characters)
     content: ?[]const u8,
     /// Can be used to verify a message was sent (up to 25 characters). Value will appear in the Message Create event.
@@ -4798,7 +4798,7 @@ const CreateMessage = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#modify-guild-welcome-screen
-const ModifyGuildWelcomeScreen = struct {
+pub const ModifyGuildWelcomeScreen = struct {
     /// Whether the welcome screen is enabled
     enabled: ?bool,
     /// Channels linked in the welcome screen and their display options
@@ -4807,12 +4807,12 @@ const ModifyGuildWelcomeScreen = struct {
     description: ?[]const u8,
 };
 
-const FollowAnnouncementChannel = struct {
+pub const FollowAnnouncementChannel = struct {
     /// The id of the channel to send announcements to.
     webhook_channel_id: []const u8,
 };
 
-const EditChannelPermissionOverridesOptions = struct {
+pub const EditChannelPermissionOverridesOptions = struct {
     /// Permission bit set
     allow: []const u8,
     /// Permission bit set
@@ -4822,7 +4822,7 @@ const EditChannelPermissionOverridesOptions = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions
-const ModifyGuildChannelPositions = struct {
+pub const ModifyGuildChannelPositions = struct {
     /// Channel id
     id: []const u8,
     /// Sorting position of the channel
@@ -4833,7 +4833,7 @@ const ModifyGuildChannelPositions = struct {
     parent_id: ?[]const u8,
 };
 
-const CreateWebhook = struct {
+pub const CreateWebhook = struct {
     /// Name of the webhook (1-80 characters)
     name: []const u8,
     /// Image url for the default webhook avatar
@@ -4841,7 +4841,7 @@ const CreateWebhook = struct {
 };
 
 /// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel
-const CreateForumPostWithMessage = struct {
+pub const CreateForumPostWithMessage = struct {
     /// 1-100 character channel name
     name: []const u8,
     /// duration in minutes to automatically archive the thread after recent activity, can be set to: 60, 1440, 4320, 10080,
@@ -4871,28 +4871,28 @@ const CreateForumPostWithMessage = struct {
     applied_tags: []?[]const u8,
 };
 
-const ArchivedThreads = struct {
+pub const ArchivedThreads = struct {
     threads: []Channel,
     members: []ThreadMember,
     hasMore: bool,
 };
 
-const ActiveThreads = struct {
+pub const ActiveThreads = struct {
     threads: []Channel,
     members: []ThreadMember,
 };
 
-const VanityUrl = struct {
+pub const VanityUrl = struct {
     code: ?[]const u8,
     uses: isize,
 };
 
-const PrunedCount = struct {
+pub const PrunedCount = struct {
     pruned: isize,
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-guild-onboarding-structure
-const GuildOnboarding = struct {
+pub const GuildOnboarding = struct {
     /// ID of the guild this onboarding is part of
     guild_id: []const u8,
     /// Prompts shown during onboarding and in customize community
@@ -4906,7 +4906,7 @@ const GuildOnboarding = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-prompt-structure
-const GuildOnboardingPrompt = struct {
+pub const GuildOnboardingPrompt = struct {
     /// ID of the prompt
     id: []const u8,
     /// Type of prompt
@@ -4924,7 +4924,7 @@ const GuildOnboardingPrompt = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
-const GuildOnboardingPromptOption = struct {
+pub const GuildOnboardingPromptOption = struct {
     /// ID of the prompt option
     id: []const u8,
     /// IDs for channels a member is added to when the option is selected
@@ -4966,13 +4966,13 @@ const GuildOnboardingPromptOption = struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-types
-const GuildOnboardingPromptType = enum {
+pub const GuildOnboardingPromptType = enum {
     MultipleChoice,
     DropDown,
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-mode
-const GuildOnboardingMode = enum {
+pub const GuildOnboardingMode = enum {
     /// Counts only Default Channels towards constraints
     OnboardingDefault,
     /// Counts Default Channels and Questions towards constraints
@@ -4980,7 +4980,7 @@ const GuildOnboardingMode = enum {
 };
 
 /// https://discord.com/developers/docs/topics/teams#team-member-roles-team-member-role-types
-const TeamMemberRole = enum {
+pub const TeamMemberRole = enum {
     /// Owners are the most permissiable role, and can take destructive, irreversible actions like deleting the team itself. Teams are limited to 1 owner.
     owner,
     /// Admins have similar access as owners, except they cannot take destructive actions on the team or team-owned apps.
@@ -4993,7 +4993,7 @@ const TeamMemberRole = enum {
 };
 
 /// https://discord.com/developers/docs/monetization/entitlements#entitlement-object-entitlement-structure
-const Entitlement = struct {
+pub const Entitlement = struct {
     /// ID of the entitlement
     id: []const u8,
     /// ID of the SKU
@@ -5017,7 +5017,7 @@ const Entitlement = struct {
 };
 
 /// https://discord.com/developers/docs/monetization/entitlements#entitlement-object-entitlement-types
-const EntitlementType = enum(u4) {
+pub const EntitlementType = enum(u4) {
     /// Entitlement was purchased by user
     Purchase = 1,
     ///Entitlement for  Nitro subscription
@@ -5037,7 +5037,7 @@ const EntitlementType = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/monetization/skus#sku-object-sku-structure
-const Sku = struct {
+pub const Sku = struct {
     /// ID of SKU
     id: []const u8,
     /// Type of SKU
@@ -5053,7 +5053,7 @@ const Sku = struct {
 };
 
 /// https://discord.com/developers/docs/monetization/skus#sku-object-sku-types
-const SkuType = enum(u4) {
+pub const SkuType = enum(u4) {
     /// Durable one-time purchase
     Durable = 2,
     /// Consumable one-time purchase
@@ -5065,7 +5065,7 @@ const SkuType = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
-const InteractionContextType = enum {
+pub const InteractionContextType = enum {
     /// Interaction can be used within servers
     Guild,
     /// Interaction can be used within DMs with the app's bot user
@@ -5075,7 +5075,7 @@ const InteractionContextType = enum {
 };
 
 /// https://discord.com/developers/docs/resources/guild#bulk-guild-ban
-const BulkBan = struct {
+pub const BulkBan = struct {
     /// list of user ids, that were successfully banned
     banned_users: [][]const u8,
     /// list of user ids, that were not banned
