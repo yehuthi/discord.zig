@@ -48,6 +48,13 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
+    const zmpl = b.createModule(.{
+        //.name = "zlib",
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("lib/zmpl/src/zmpl.zig"),
+    });
+
     const srcs = &.{
         "lib/zlib/adler32.c",
         "lib/zlib/compress.c",
@@ -77,6 +84,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("ws", websocket);
     exe.root_module.addImport("tls12", zig_tls_http);
     exe.root_module.addImport("zlib", zlib_zig);
+    exe.root_module.addImport("zmpl", zmpl);
 
     // test
     test_comp.root_module.addImport("ws", websocket);

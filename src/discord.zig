@@ -10,13 +10,15 @@ const crypto = std.crypto;
 const tls = std.crypto.tls;
 // todo use this to read compressed messages
 const zlib = @import("zlib");
+const zmpl = @import("zmpl");
 
-const Discord = @import("types.zig");
+const Discord = @import("raw_types.zig");
 
 const Self = @This();
 
 const GatewayPayload = Discord.GatewayPayload;
 const Opcode = Discord.GatewayOpcodes;
+const Intents = Discord.Intents;
 
 const ShardSocketCloseCodes = enum(u16) {
     Shutdown = 3000,
@@ -24,47 +26,6 @@ const ShardSocketCloseCodes = enum(u16) {
 };
 
 const BASE_URL = "https://discord.com/api/v10";
-
-pub const Intents = packed struct {
-    guilds: bool = false,
-    guild_members: bool = false,
-    guild_bans: bool = false,
-    guild_emojis: bool = false,
-    guild_integrations: bool = false,
-    guild_webhooks: bool = false,
-    guild_invites: bool = false,
-    guild_voice_states: bool = false,
-
-    guild_presences: bool = false,
-    guild_messages: bool = false,
-    guild_message_reactions: bool = false,
-    guild_message_typing: bool = false,
-    direct_messages: bool = false,
-    direct_message_reactions: bool = false,
-    direct_message_typing: bool = false,
-    message_content: bool = false,
-
-    guild_scheduled_events: bool = false,
-    _pad: u3 = 0,
-    auto_moderation_configuration: bool = false,
-    auto_moderation_execution: bool = false,
-    _pad2: u2 = 0,
-
-    _pad3: u8 = 0,
-
-    pub fn toRaw(self: Intents) u32 {
-        return @as(u32, @bitCast(self));
-    }
-
-    pub fn fromRaw(raw: u32) Intents {
-        return @as(Intents, @bitCast(raw));
-    }
-
-    pub fn jsonStringify(self: Intents, options: std.json.StringifyOptions, writer: anytype) !void {
-        _ = options;
-        try writer.print("{}", .{self.toRaw()});
-    }
-};
 
 pub const GatewayDispatchEvent = struct {
     // TODO: implement // application_command_permissions_update: null = null,
@@ -269,6 +230,12 @@ handler: GatewayDispatchEvent,
 ///useful for closing the conn
 mutex: std.Thread.Mutex = .{},
 
+fn parseJson(self: *Self, raw: []const u8) !zmpl.Data {
+    var data = zmpl.Data.init(self.allocator);
+    try data.fromJson(raw);
+    return data;
+}
+
 inline fn jitter() i1 {
     return 0;
 }
@@ -300,6 +267,7 @@ inline fn gateway_url(self: ?*Self) []const u8 {
 
 // identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
 fn identify(self: *Self) !void {
+    std.debug.print("intents: {d}", .{self.intents.toRaw()});
     const data = .{
         .op = @intFromEnum(Opcode.Identify),
         .d = .{
@@ -383,29 +351,29 @@ pub fn readMessage(self: *Self, _: anytype) !void {
 
         const raw = try json.parseFromSlice(struct {
             /// opcode for the payload
-            op: Opcode,
+            op: isize,
             /// Event data
-            d: ?json.Value,
+            d: json.Value,
             /// Sequence isize, used for resuming sessions and heartbeats
-            s: ?isize,
+            s: ?i64,
             /// The event name for this payload
             t: ?[]const u8,
         }, self.allocator, msg.data, .{});
 
         const payload = raw.value;
 
-        std.debug.print("received: {?s}\n", .{payload.t});
+        //std.debug.print("received: {?s} with content {?s}\n", .{ payload.t, msg.data });
 
-        switch (payload.op) {
+        switch (@as(Opcode, @enumFromInt(payload.op))) {
             Opcode.Dispatch => {
                 self.setSequence(payload.s orelse 0);
                 // maybe use threads and call it instead from there
                 if (payload.t) |name| try self.handleEvent(name, msg.data);
             },
             Opcode.Hello => {
-                if (payload.d) |d| {
+                {
                     const HelloPayload = struct { heartbeat_interval: u64, _trace: [][]const u8 };
-                    const parsed = try json.parseFromValue(HelloPayload, self.allocator, d, .{});
+                    const parsed = try json.parseFromValue(HelloPayload, self.allocator, payload.d, .{});
                     const helloPayload = parsed.value;
 
                     // PARSE NEW URL IN READY
@@ -455,8 +423,8 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                     session_id: []const u8,
                     seq: ?isize,
                 };
-                if (payload.d) |d| {
-                    const parsed = try json.parseFromValue(WithSequence, self.allocator, d, .{});
+                {
+                    const parsed = try json.parseFromValue(WithSequence, self.allocator, payload.d, .{});
                     const resume_payload = parsed.value;
 
                     self.setSequence(resume_payload.seq orelse 0);
@@ -465,7 +433,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
             },
             Opcode.InvalidSession => {},
             else => {
-                std.debug.print("Unhandled {} -- {s}", .{ payload.op, "none" });
+                std.debug.print("Unhandled {d} -- {s}", .{ payload.op, "none" });
             },
         }
     }
@@ -535,7 +503,7 @@ pub fn send(self: *Self, data: anytype) !void {
     var string = std.ArrayList(u8).init(fba.allocator());
     try std.json.stringify(data, .{}, string.writer());
 
-    std.debug.print("{s}\n", .{string.items});
+    //std.debug.print("{s}\n", .{string.items});
 
     try self.client.write(string.items);
 }
@@ -552,9 +520,128 @@ pub inline fn setSequence(self: *Self, new: isize) void {
 }
 
 pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
-    if (std.ascii.eqlIgnoreCase(name, @tagName(.message_create))) {
-        const attempt = try std.json.parseFromSlice(Discord.Message, self.allocator, payload, .{});
-        defer attempt.deinit();
-        @call(.auto, self.handler.message_create, .{attempt.value});
+    const attempt = try self.parseJson(payload);
+    if (std.ascii.eqlIgnoreCase(name, "message_create")) {
+        const obj = attempt.getT(.object, "d").?;
+        const author_obj = obj.getT(.object, "author").?;
+        const member_obj = obj.getT(.object, "member").?;
+        const avatar_decoration_data_obj = author_obj.getT(.object, "avatar_decoration_data");
+        const avatar_decoration_data_member_obj = author_obj.getT(.object, "avatar_decoration_data");
+        const mentions_obj = obj.getT(.array, "mentions").?;
+        var mentions = std.ArrayList(Discord.User).init(self.allocator);
+
+        while (mentions_obj.iterator().next()) |m| {
+            const avatar_decoration_data_mention_obj = m.getT(.object, "avatar_decoration_data");
+            try mentions.append(Discord.User{
+                .id = m.getT(.string, "id").?,
+                .bot = m.getT(.boolean, "bot") orelse false,
+                .username = m.getT(.string, "username").?,
+                .accent_color = if (m.getT(.integer, "accent_color")) |ac| @as(isize, @intCast(ac)) else null,
+                // note: for selfbots this can be typed with an enu.?,
+                .flags = if (m.getT(.integer, "flags")) |fs| @as(isize, @intCast(fs)) else null,
+                // also for selfbot.?,
+                .email = m.getT(.string, "email"),
+                .avatar = m.getT(.string, "avatar"),
+                .locale = m.getT(.string, "locale"),
+                .system = m.getT(.boolean, "system"),
+                .banner = m.getT(.string, "banner"),
+                .verified = m.getT(.boolean, "verified"),
+                .global_name = m.getT(.string, "global_name"),
+                .mfa_enabled = m.getT(.boolean, "mfa_enabled"),
+                .public_flags = if (m.getT(.integer, "public_flags")) |pfs| @as(isize, @intCast(pfs)) else null,
+                .premium_type = if (m.getT(.integer, "premium_type")) |pfs| @as(Discord.PremiumTypes, @enumFromInt(pfs)) else null,
+                .discriminator = m.getT(.string, "discriminator").?,
+                .avatar_decoration_data = if (avatar_decoration_data_mention_obj) |addm| Discord.AvatarDecorationData{
+                    .asset = addm.getT(.string, "asset").?,
+                    .sku_id = addm.getT(.string, "sku_id").?,
+                } else null,
+            });
+        }
+
+        const member = Discord.Member{
+            .deaf = member_obj.getT(.boolean, "deaf"),
+            .mute = member_obj.getT(.boolean, "mute"),
+            .pending = member_obj.getT(.boolean, "pending"),
+            .user = null,
+            .nick = member_obj.getT(.string, "nick"),
+            .avatar = member_obj.getT(.string, "avatar"),
+            .roles = &[0][]const u8{},
+            .joined_at = member_obj.getT(.string, "joined_at").?,
+            .premium_since = member_obj.getT(.string, "premium_since"),
+            .permissions = member_obj.getT(.string, "permissions"),
+            .communication_disabled_until = member_obj.getT(.string, "communication_disabled_until"),
+            .flags = @as(isize, @intCast(member_obj.getT(.integer, "flags").?)),
+            .avatar_decoration_data = if (avatar_decoration_data_member_obj) |addm| Discord.AvatarDecorationData{
+                .asset = addm.getT(.string, "asset").?,
+                .sku_id = addm.getT(.string, "sku_id").?,
+            } else null,
+        };
+
+        const author = Discord.User{
+            .id = author_obj.getT(.string, "id").?,
+            .bot = author_obj.getT(.boolean, "bot") orelse false,
+            .username = author_obj.getT(.string, "username").?,
+            .accent_color = if (author_obj.getT(.integer, "accent_color")) |ac| @as(isize, @intCast(ac)) else null,
+            // note: for selfbots this can be typed with an enu.?,
+            .flags = if (author_obj.getT(.integer, "flags")) |fs| @as(isize, @intCast(fs)) else null,
+            // also for selfbot.?,
+            .email = author_obj.getT(.string, "email"),
+            .avatar = author_obj.getT(.string, "avatar"),
+            .locale = author_obj.getT(.string, "locale"),
+            .system = author_obj.getT(.boolean, "system"),
+            .banner = author_obj.getT(.string, "banner"),
+            .verified = author_obj.getT(.boolean, "verified"),
+            .global_name = author_obj.getT(.string, "global_name"),
+            .mfa_enabled = author_obj.getT(.boolean, "mfa_enabled"),
+            .public_flags = if (author_obj.getT(.integer, "public_flags")) |pfs| @as(isize, @intCast(pfs)) else null,
+            .premium_type = if (author_obj.getT(.integer, "premium_type")) |pfs| @as(Discord.PremiumTypes, @enumFromInt(pfs)) else null,
+            .discriminator = author_obj.getT(.string, "discriminator").?,
+            .avatar_decoration_data = if (avatar_decoration_data_obj) |add| Discord.AvatarDecorationData{
+                .asset = add.getT(.string, "asset").?,
+                .sku_id = add.getT(.string, "sku_id").?,
+            } else null,
+        };
+
+        const m = Discord.Message{
+            // the id
+            .id = obj.getT(.string, "id").?,
+            .tts = obj.getT(.boolean, "tts").?,
+            .mention_everyone = obj.getT(.boolean, "mention_everyone").?,
+            .pinned = obj.getT(.boolean, "pinned").?,
+            .type = @as(Discord.MessageTypes, @enumFromInt(obj.getT(.integer, "type").?)),
+            .channel_id = obj.getT(.string, "channel_id").?,
+            .author = author,
+            .member = member,
+            .content = obj.getT(.string, "content"),
+            .timestamp = obj.getT(.string, "timestamp").?,
+            .guild_id = obj.getT(.string, "guild_id"),
+            .attachments = &[0]Discord.Attachment{},
+            .edited_timestamp = null,
+            .mentions = mentions.items,
+            .mention_roles = &[0]?[]const u8{},
+            .mention_channels = &[0]?Discord.ChannelMention{},
+            .embeds = &[0]Discord.Embed{},
+            .reactions = &[0]?Discord.Reaction{},
+            .nonce = .{ .string = obj.getT(.string, "nonce").? },
+            .webhook_id = obj.getT(.string, "webhook_id"),
+            .activity = null,
+            .application = null,
+            .application_id = obj.getT(.string, "application_id"),
+            .message_reference = null,
+            .flags = if (obj.getT(.integer, "flags")) |fs| @as(Discord.MessageFlags, @bitCast(@as(u15, @intCast(fs)))) else null,
+            .stickers = &[0]?Discord.Sticker{},
+            .referenced_message = null,
+            .message_snapshots = &[0]?Discord.MessageSnapshot{},
+            .interaction_metadata = null,
+            .interaction = null,
+            .thread = null,
+            .components = null,
+            .sticker_items = &[0]?Discord.StickerItem{},
+            .position = if (obj.getT(.integer, "position")) |p| @as(isize, @intCast(p)) else null,
+            .poll = null,
+            .call = null,
+        };
+
+        @call(.auto, self.handler.message_create, .{m});
     } else {}
 }
