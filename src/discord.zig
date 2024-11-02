@@ -11,21 +11,12 @@ const tls = std.crypto.tls;
 // todo use this to read compressed messages
 const zlib = @import("zlib");
 
+const Discord = @import("types.zig");
+
 const Self = @This();
 
-const Opcode = enum(u4) {
-    Dispatch = 0,
-    Heartbeat = 1,
-    Identify = 2,
-    PresenceUpdate = 3,
-    VoiceStateUpdate = 4,
-    Resume = 6,
-    Reconnect = 7,
-    RequestGuildMember = 8,
-    InvalidSession = 9,
-    Hello = 10,
-    HeartbeatACK = 11,
-};
+const GatewayPayload = Discord.GatewayPayload;
+const Opcode = Discord.GatewayOpcodes;
 
 const ShardSocketCloseCodes = enum(u16) {
     Shutdown = 3000,
@@ -73,6 +64,78 @@ pub const Intents = packed struct {
         _ = options;
         try writer.print("{}", .{self.toRaw()});
     }
+};
+
+pub const GatewayDispatchEvent = struct {
+    // TODO: implement // application_command_permissions_update: null = null,
+    // TODO: implement // auto_moderation_rule_create: null = null,
+    // TODO: implement // auto_moderation_rule_update: null = null,
+    // TODO: implement // auto_moderation_rule_delete: null = null,
+    // TODO: implement // auto_moderation_action_execution: null = null,
+    // TODO: implement // channel_create: null = null,
+    // TODO: implement // channel_update: null = null,
+    // TODO: implement // channel_delete: null = null,
+    // TODO: implement // channel_pins_update: null = null,
+    // TODO: implement // thread_create: null = null,
+    // TODO: implement // thread_update: null = null,
+    // TODO: implement // thread_delete: null = null,
+    // TODO: implement // thread_list_sync: null = null,
+    // TODO: implement // thread_member_update: null = null,
+    // TODO: implement // thread_members_update: null = null,
+    // TODO: implement // guild_audit_log_entry_create: null = null,
+    // TODO: implement // guild_create: null = null,
+    // TODO: implement // guild_update: null = null,
+    // TODO: implement // guild_delete: null = null,
+    // TODO: implement // guild_ban_add: null = null,
+    // TODO: implement // guild_ban_remove: null = null,
+    // TODO: implement // guild_emojis_update: null = null,
+    // TODO: implement // guild_stickers_update: null = null,
+    // TODO: implement // guild_integrations_update: null = null,
+    // TODO: implement // guild_member_add: null = null,
+    // TODO: implement // guild_member_remove: null = null,
+    // TODO: implement // guild_member_update: null = null,
+    // TODO: implement // guild_members_chunk: null = null,
+    // TODO: implement // guild_role_create: null = null,
+    // TODO: implement // guild_role_update: null = null,
+    // TODO: implement // guild_role_delete: null = null,
+    // TODO: implement // guild_scheduled_event_create: null = null,
+    // TODO: implement // guild_scheduled_event_update: null = null,
+    // TODO: implement // guild_scheduled_event_delete: null = null,
+    // TODO: implement // guild_scheduled_event_user_add: null = null,
+    // TODO: implement // guild_scheduled_event_user_remove: null = null,
+    // TODO: implement // integration_create: null = null,
+    // TODO: implement // integration_update: null = null,
+    // TODO: implement // integration_delete: null = null,
+    // TODO: implement // interaction_create: null = null,
+    // TODO: implement // invite_create: null = null,
+    // TODO: implement // invite_delete: null = null,
+    message_create: *const fn (message: Discord.Message) void = undefined,
+    // TODO: implement // message_update: null = null,
+    // TODO: implement // message_delete: null = null,
+    // TODO: implement // message_delete_bulk: null = null,
+    // TODO: implement // message_reaction_add: null = null,
+    // TODO: implement // message_reaction_remove: null = null,
+    // TODO: implement // message_reaction_remove_all: null = null,
+    // TODO: implement // message_reaction_remove_emoji: null = null,
+    // TODO: implement // presence_update: null = null,
+    // TODO: implement // stage_instance_create: null = null,
+    // TODO: implement // stage_instance_update: null = null,
+    // TODO: implement // stage_instance_delete: null = null,
+    // TODO: implement // typing_start: null = null,
+    // TODO: implement // user_update: null = null,
+    // TODO: implement // voice_channel_effect_send: null = null,
+    // TODO: implement // voice_state_update: null = null,
+    // TODO: implement // voice_server_update: null = null,
+    // TODO: implement // webhooks_update: null = null,
+    // TODO: implement // entitlement_create: null = null,
+    // TODO: implement // entitlement_update: null = null,
+    // TODO: implement // entitlement_delete: null = null,
+    // TODO: implement // message_poll_vote_add: null = null,
+    // TODO: implement // message_poll_vote_remove: null = null,
+
+    // TODO: implement // ready: null = null,
+    // TODO: implement // resumed: null = null,
+    any: *const fn (data: []u8) void = undefined,
 };
 
 const FetchReq = struct {
@@ -197,8 +260,11 @@ resume_gateway_url: ?[]const u8 = null,
 info: GatewayBotInfo,
 
 session_id: ?[]const u8,
-sequence: u64,
+sequence: isize,
 heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
+
+///
+handler: GatewayDispatchEvent,
 
 ///useful for closing the conn
 mutex: std.Thread.Mutex = .{},
@@ -249,7 +315,11 @@ fn identify(self: *Self) !void {
 }
 
 // asks /gateway/bot initializes both the ws client and the http client
-pub fn init(allocator: mem.Allocator, args: struct { token: []const u8, intents: Intents }) !Self {
+pub fn init(allocator: mem.Allocator, args: struct {
+    token: []const u8,
+    intents: Intents,
+    run: GatewayDispatchEvent,
+}) !Self {
     var req = FetchReq.init(allocator, args.token);
     defer req.deinit();
 
@@ -275,6 +345,7 @@ pub fn init(allocator: mem.Allocator, args: struct { token: []const u8, intents:
         .session_id = undefined,
         .sequence = 0,
         .info = parsed.value,
+        .handler = args.run,
     };
 }
 
@@ -299,7 +370,7 @@ pub fn deinit(self: *Self) void {
 }
 
 // listens for messages
-pub fn readMessage(self: *Self) !void {
+pub fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
     while (true) {
@@ -310,52 +381,55 @@ pub fn readMessage(self: *Self) !void {
 
         defer self.client.done(msg);
 
-        const DiscordData = struct {
-            s: ?u64, //well figure it out
+        const raw = try json.parseFromSlice(struct {
+            /// opcode for the payload
             op: Opcode,
-            d: json.Value, // needs parsing
+            /// Event data
+            d: ?json.Value,
+            /// Sequence isize, used for resuming sessions and heartbeats
+            s: ?isize,
+            /// The event name for this payload
             t: ?[]const u8,
-        };
-
-        const raw = try json.parseFromSlice(DiscordData, self.allocator, msg.data, .{});
+        }, self.allocator, msg.data, .{});
 
         const payload = raw.value;
 
         std.debug.print("received: {?s}\n", .{payload.t});
 
-        if (payload.op == Opcode.Dispatch) {
-            // maybe use mutex
-            self.setSequence(payload.s orelse 0);
-        }
-
         switch (payload.op) {
-            Opcode.Dispatch => {},
+            Opcode.Dispatch => {
+                self.setSequence(payload.s orelse 0);
+                // maybe use threads and call it instead from there
+                if (payload.t) |name| try self.handleEvent(name, msg.data);
+            },
             Opcode.Hello => {
-                const HelloPayload = struct { heartbeat_interval: u64, _trace: [][]const u8 };
-                const parsed = try json.parseFromValue(HelloPayload, self.allocator, payload.d, .{});
-                const helloPayload = parsed.value;
+                if (payload.d) |d| {
+                    const HelloPayload = struct { heartbeat_interval: u64, _trace: [][]const u8 };
+                    const parsed = try json.parseFromValue(HelloPayload, self.allocator, d, .{});
+                    const helloPayload = parsed.value;
 
-                // PARSE NEW URL IN READY
+                    // PARSE NEW URL IN READY
 
-                self.heart = Heart{
-                    // TODO: fix bug
-                    .heartbeatInterval = helloPayload.heartbeat_interval,
-                    .ack = false,
-                    .lastBeat = 0,
-                };
+                    self.heart = Heart{
+                        // TODO: fix bug
+                        .heartbeatInterval = helloPayload.heartbeat_interval,
+                        .ack = false,
+                        .lastBeat = 0,
+                    };
 
-                std.debug.print("starting heart beater. seconds:{d}...\n", .{self.heart.heartbeatInterval});
+                    std.debug.print("starting heart beater. seconds:{d}...\n", .{self.heart.heartbeatInterval});
 
-                try self.heartbeat();
+                    try self.heartbeat();
 
-                const thread = try std.Thread.spawn(.{}, Self.heartbeat_wait, .{self});
-                thread.detach();
+                    const thread = try std.Thread.spawn(.{}, Self.heartbeat_wait, .{self});
+                    thread.detach();
 
-                if (self.resumable()) {
-                    try self.resume_();
-                    return;
-                } else {
-                    try self.identify();
+                    if (self.resumable()) {
+                        try self.resume_();
+                        return;
+                    } else {
+                        try self.identify();
+                    }
                 }
             },
             Opcode.HeartbeatACK => {
@@ -379,13 +453,15 @@ pub fn readMessage(self: *Self) !void {
                 const WithSequence = struct {
                     token: []const u8,
                     session_id: []const u8,
-                    seq: ?u64,
+                    seq: ?isize,
                 };
-                const parsed = try json.parseFromValue(WithSequence, self.allocator, payload.d, .{});
-                const payload_new = parsed.value;
+                if (payload.d) |d| {
+                    const parsed = try json.parseFromValue(WithSequence, self.allocator, d, .{});
+                    const resume_payload = parsed.value;
 
-                self.setSequence(payload_new.seq orelse 0);
-                self.session_id = payload_new.session_id;
+                    self.setSequence(resume_payload.seq orelse 0);
+                    self.session_id = resume_payload.session_id;
+                }
             },
             Opcode.InvalidSession => {},
             else => {
@@ -464,13 +540,21 @@ pub fn send(self: *Self, data: anytype) !void {
     try self.client.write(string.items);
 }
 
-pub inline fn getSequence(self: *Self) u64 {
+pub inline fn getSequence(self: *Self) isize {
     return self.sequence;
 }
 
-pub inline fn setSequence(self: *Self, new: u64) void {
+pub inline fn setSequence(self: *Self, new: isize) void {
     self.mutex.lock();
     defer self.mutex.unlock();
 
     self.sequence = new;
+}
+
+pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
+    if (std.ascii.eqlIgnoreCase(name, @tagName(.message_create))) {
+        const attempt = try std.json.parseFromSlice(Discord.Message, self.allocator, payload, .{});
+        defer attempt.deinit();
+        @call(.auto, self.handler.message_create, .{attempt.value});
+    } else {}
 }

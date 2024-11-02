@@ -1,10 +1,10 @@
 const std = @import("std");
 const AutoHashMapUnmanaged = std.AutoHashMapUnmanaged;
 
-pub fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
+pub fn Omit(comptime T: type, comptime field_names: anytype) type {
     const info = @typeInfo(T);
     switch (info) {
-        .Struct => |s| {
+        .@"struct" => |s| {
             comptime var fields: []const std.builtin.Type.StructField = &[_]std.builtin.Type.StructField{};
             outer: inline for (s.fields) |field| {
                 if (field.is_comptime) {
@@ -12,14 +12,14 @@ pub fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
                 }
 
                 inline for (field_names) |lookup| {
-                    if (field == lookup) {
+                    if (std.mem.eql(u8, field.name, lookup)) {
                         continue :outer;
                     }
                 }
 
-                fields = fields ++ field;
+                fields = fields ++ .{field};
             }
-            const ti: std.builtin.Type = .{ .Struct = .{
+            const ti: std.builtin.Type = .{ .@"struct" = .{
                 .backing_integer = s.backing_integer,
                 .decls = &[_]std.builtin.Type.Declaration{},
                 .fields = fields,
@@ -36,14 +36,14 @@ pub fn Omit(comptime T: type, comptime field_names: [][]const u8) type {
 pub fn Partial(comptime T: type) type {
     const info = @typeInfo(T);
     switch (info) {
-        .Struct => |s| {
+        .@"struct" => |s| {
             comptime var fields: []const std.builtin.Type.StructField = &[_]std.builtin.Type.StructField{};
             inline for (s.fields) |field| {
                 if (field.is_comptime) {
                     @compileError("Cannot make Partial of " ++ @typeName(T) ++ ", it has a comptime field " ++ field.name);
                 }
                 const optional_type = switch (@typeInfo(field.type)) {
-                    .Optional => field.type,
+                    .optional => field.type,
                     else => ?field.type,
                 };
                 const default_value: optional_type = null;
@@ -57,7 +57,7 @@ pub fn Partial(comptime T: type) type {
                 }};
                 fields = fields ++ optional_field;
             }
-            const partial_type_info: std.builtin.Type = .{ .Struct = .{
+            const partial_type_info: std.builtin.Type = .{ .@"struct" = .{
                 .backing_integer = s.backing_integer,
                 .decls = &[_]std.builtin.Type.Declaration{},
                 .fields = fields,
@@ -558,7 +558,7 @@ pub const ActivityTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-types
-pub const MessageTypes = enum(u4) {
+pub const MessageTypes = enum(u8) {
     Default,
     RecipientAdd,
     RecipientRemove,
@@ -2243,13 +2243,16 @@ pub const RoleTags = struct {
     /// The id of the integration this role belongs to
     integration_id: ?[]const u8,
     /// Whether this is the guild's premium subscriber role
-    premium_subscriber: ?null,
+    /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
+    premium_subscriber: ?bool,
     /// Id of this role's subscription sku and listing.
     subscription_listing_id: ?[]const u8,
     /// Whether this role is available for purchase.
-    available_for_purchase: ?null,
+    /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
+    available_for_purchase: ?bool,
     /// Whether this is a guild's linked role
-    guild_connections: ?null,
+    /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
+    guild_connections: ?bool,
 };
 
 /// https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
@@ -2632,7 +2635,8 @@ pub const MemberWithUser = struct {
     user: User,
 };
 
-pub const MessageComponent = noreturn;
+/// TODO: fix this
+pub const MessageComponent = isize;
 
 /// https://discord.com/developers/docs/resources/channel#message-object
 pub const Message = struct {
@@ -2749,8 +2753,8 @@ pub const Message = struct {
     ///
     /// The message associated with the `message_reference`
     /// Note: This field is only returned for messages with a `type` of `19` (REPLY). If the message is a reply but the `referenced_message` field is not present, the backend did not attempt to fetch the message that was being replied to, so its state is unknown. If the field exists but is null, the referenced message was deleted.,
-    ///
-    referenced_message: ?Message,
+    /// TAKES A POINTER
+    referenced_message: ?*Message,
     /// The message associated with the `message_reference`. This is a minimal subset of fields in a message (e.g. `author` is excluded.)
     message_snapshots: []?MessageSnapshot,
     /// sent if the message is sent as a result of an interaction
@@ -3082,7 +3086,8 @@ pub const MessageInteractionMetadata = struct {
     /// ID of the message that contained interactive component, present only on messages created from component interactions
     interacted_message_id: ?[]const u8,
     /// Metadata for the interaction that was used to open the modal, present only on modal submit interactions
-    triggering_interaction_metadata: ?MessageInteractionMetadata,
+    /// TAKES A POINTER
+    triggering_interaction_metadata: ?*MessageInteractionMetadata,
 };
 
 /// https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
@@ -3260,7 +3265,7 @@ pub const InteractionData = struct {
         /// The Ids and User objects
         users: ?AutoHashMapUnmanaged([]const u8, User),
         /// The Ids and partial Member objects
-        members: ?AutoHashMapUnmanaged([]const u8, Omit(InteractionMember, .{"user' | 'deaf' | 'mute"})),
+        members: ?AutoHashMapUnmanaged([]const u8, Omit(InteractionMember, .{ "user", "deaf", "mute" })),
         /// The Ids and Role objects
         roles: ?AutoHashMapUnmanaged([]const u8, Role),
         /// The Ids and partial Channel objects
