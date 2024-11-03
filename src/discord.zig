@@ -256,13 +256,8 @@ pub fn resume_(self: *Self) !void {
     try self.send(data);
 }
 
-inline fn gateway_url(self: ?*Self) []const u8 {
-    // wtf is this?
-    if (self) |s| {
-        return s.resume_gateway_url orelse s.info.url;
-    }
-
-    return "wss://gateway.discord.gg";
+inline fn gatewayUrl(self: ?*Self) []const u8 {
+    return if (self) |s| s.resume_gateway_url orelse s.info.url else "wss://gateway.discord.gg";
 }
 
 // identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
@@ -330,9 +325,13 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
         .host = url,
     });
 
+    // maybe change this to a buffer
+    var buf: [0x100]u8 = undefined;
+    const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url});
+
     conn.handshake("/?v=10&encoding=json&compress=zlib-stream", .{
         .timeout_ms = 1000,
-        .headers = "host: gateway.discord.gg",
+        .headers = host,
     }) catch unreachable;
 
     return conn;
@@ -340,7 +339,7 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
 
 pub fn deinit(self: *Self) void {
     self.client.deinit();
-    self.logif("killing the whole bot\n", .{});
+    self.logif("killing the whole bot", .{});
 }
 
 // listens for messages
@@ -356,8 +355,8 @@ pub fn readMessage(self: *Self, _: anytype) !void {
         // self.logif("received: {?s}\n", .{msg.data});
         try self.packets.appendSlice(msg.data);
 
-        // dirty trick with slices
-        if (!std.mem.eql(u8, msg.data[msg.data.len - 4 .. msg.data.len], &[4]u8{ 0x00, 0x00, 0xFF, 0xFF }))
+        // end of zlib
+        if (!std.mem.endsWith(u8, msg.data, &[4]u8{ 0x00, 0x00, 0xFF, 0xFF }))
             continue;
 
         // self.logif("{b}\n", .{self.packets.items});
@@ -398,7 +397,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                         .lastBeat = 0,
                     };
 
-                    self.logif("starting heart beater. seconds:{d}...\n", .{self.heart.heartbeatInterval});
+                    self.logif("starting heart beater. seconds:{d}...", .{self.heart.heartbeatInterval});
 
                     try self.heartbeat();
 
@@ -418,7 +417,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
             },
             Opcode.HeartbeatACK => {
                 // perhaps this needs a mutex?
-                self.logif("got heartbeat ack\n", .{});
+                self.logif("got heartbeat ack", .{});
 
                 self.mutex.lock();
                 defer self.mutex.unlock();
@@ -426,11 +425,11 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                 self.heart.ack = true;
             },
             Opcode.Heartbeat => {
-                self.logif("sending requested heartbeat\n", .{});
+                self.logif("sending requested heartbeat", .{});
                 try self.heartbeat();
             },
             Opcode.Reconnect => {
-                self.logif("reconnecting\n", .{});
+                self.logif("reconnecting", .{});
                 try self.reconnect();
             },
             Opcode.Resume => {
@@ -463,18 +462,18 @@ pub fn heartbeat(self: *Self) !void {
 
 pub fn heartbeat_wait(self: *Self, jitter: f64) !void {
     if (jitter == 1.0) {
-        self.logif("zzz for {d}\n", .{self.heart.heartbeatInterval});
+        // self.logif("zzz for {d}", .{self.heart.heartbeatInterval});
         std.Thread.sleep(std.time.ns_per_ms * self.heart.heartbeatInterval);
     } else {
         const timeout = @as(f64, @floatFromInt(self.heart.heartbeatInterval)) * jitter;
-        self.logif("zzz for {d} and jitter {d}\n", .{ @as(u64, @intFromFloat(timeout)), jitter });
+        self.logif("zzz for {d} and jitter {d}", .{ @as(u64, @intFromFloat(timeout)), jitter });
         std.Thread.sleep(std.time.ns_per_ms * @as(u64, @intFromFloat(timeout)));
     }
 
-    self.logif(">> ♥ and ack received: {}\n", .{self.heart.ack});
+    self.logif(">> ♥ and ack received: {}", .{self.heart.ack});
 
     if (self.heart.ack) {
-        self.logif("sending unrequested heartbeat\n", .{});
+        self.logif("sending unrequested heartbeat", .{});
         try self.heartbeat();
         try self.client.readTimeout(1000);
     } else {
@@ -487,17 +486,15 @@ pub fn heartbeat_wait(self: *Self, jitter: f64) !void {
 
 pub inline fn reconnect(self: *Self) !void {
     try self.disconnect();
-    _ = try self.connect();
+    try self.connect();
 }
 
-pub fn connect(self: *Self) !Self {
+pub fn connect(self: *Self) !void {
     self.mutex.lock();
     defer self.mutex.unlock();
 
     //std.time.sleep(std.time.ms_per_s * 5);
-    self.client = try Self._connect_ws(self.allocator, self.gateway_url());
-
-    return self.*;
+    self.client = try Self._connect_ws(self.allocator, self.gatewayUrl());
 }
 
 pub fn disconnect(self: *Self) !void {
@@ -540,6 +537,13 @@ pub inline fn setSequence(self: *Self, new: isize) void {
 
 pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     const attempt = try self.parseJson(payload);
+
+    if (std.ascii.eqlIgnoreCase(name, "ready")) {
+        const obj = attempt.getT(.object, "d").?;
+
+        self.resume_gateway_url = obj.getT(.string, "resume_gateway_url");
+    }
+
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
         const obj = attempt.getT(.object, "d").?;
         const author_obj = obj.getT(.object, "author").?;
