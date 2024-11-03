@@ -326,8 +326,9 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
     });
 
     // maybe change this to a buffer
+    const url_host = try std.Uri.parse(url);
     var buf: [0x100]u8 = undefined;
-    const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url});
+    const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url_host.host.?.percent_encoded});
 
     conn.handshake("/?v=10&encoding=json&compress=zlib-stream", .{
         .timeout_ms = 1000,
