@@ -343,19 +343,6 @@ pub fn deinit(self: *Self) void {
     self.logif("killing the whole bot\n", .{});
 }
 
-pub fn ensureCompressed(data: []const u8, comptime pattern: []const u8) bool {
-    if (data.len < pattern.len) {
-        return false;
-    }
-
-    const start_index: usize = data.len - pattern.len;
-
-    for (0..pattern.len) |i| {
-        if (data[start_index + i] != pattern[i]) return false;
-    }
-    return true;
-}
-
 // listens for messages
 pub fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
@@ -369,7 +356,8 @@ pub fn readMessage(self: *Self, _: anytype) !void {
         // self.logif("received: {?s}\n", .{msg.data});
         try self.packets.appendSlice(msg.data);
 
-        if (!Self.ensureCompressed(msg.data, &[4]u8{ 0x00, 0x00, 0xFF, 0xFF }))
+        // dirty trick with slices
+        if (!std.mem.eql(u8, msg.data[msg.data.len - 4 .. msg.data.len], &[4]u8{ 0x00, 0x00, 0xFF, 0xFF }))
             continue;
 
         // self.logif("{b}\n", .{self.packets.items});
