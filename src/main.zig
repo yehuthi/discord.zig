@@ -18,6 +18,7 @@ pub fn main() !void {
         .token = TOKEN,
         .intents = Intents.fromRaw(37379),
         .run = Session.GatewayDispatchEvent{ .message_create = &message_create },
+        .log = .yes,
     });
     errdefer handler.deinit();
 
