@@ -257,7 +257,7 @@ pub fn resume_(self: *Self) !void {
 }
 
 inline fn gatewayUrl(self: ?*Self) []const u8 {
-    return if (self) |s| s.resume_gateway_url orelse s.info.url else "wss://gateway.discord.gg";
+    return if (self) |s| (s.resume_gateway_url orelse s.info.url)["wss://".len..] else "gateway.discord.gg";
 }
 
 // identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
@@ -326,9 +326,8 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
     });
 
     // maybe change this to a buffer
-    const url_host = try std.Uri.parse(url);
     var buf: [0x100]u8 = undefined;
-    const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url_host.host.?.percent_encoded});
+    const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url});
 
     conn.handshake("/?v=10&encoding=json&compress=zlib-stream", .{
         .timeout_ms = 1000,
@@ -543,6 +542,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         const obj = attempt.getT(.object, "d").?;
 
         self.resume_gateway_url = obj.getT(.string, "resume_gateway_url");
+        self.logif("new gateway url: {s}", .{self.gatewayUrl()});
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
