@@ -13,7 +13,12 @@ git clone https://github.com/jetzig-framework/zmpl.git ./lib/zmpl/
 or simply run ./install.sh
 
 # features
-* idk man
+* scalable
+* 100% API coverage, fully typed
+* faster than any other Discord library
+* language-agnostic
+* implemented from scratch
+* parses payloads using zlib
 
 ```zig
 // Sample code

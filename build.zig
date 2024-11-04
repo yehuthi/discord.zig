@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     // these are boiler plate code until you know what you are doing
     // and you need to add additional options
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
     // this is your own program
     const exe = b.addExecutable(.{
@@ -72,6 +72,8 @@ pub fn build(b: *std.Build) void {
         "lib/zlib/uncompr.c",
         "lib/zlib/zutil.c",
     };
+
+    //const mode = b.standardReleaseOptions();
 
     zlib_zig.addCSourceFiles(.{ .files = srcs, .flags = &.{"-std=c89"} });
     zlib_zig.addIncludePath(b.path("lib/zlib/"));

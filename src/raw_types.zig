@@ -1345,6 +1345,7 @@ pub const User = struct {
     banner: ?[]const u8,
     /// data for the user's avatar decoration
     avatar_decoration_data: ?AvatarDecorationData,
+    clan: ?[]const u8,
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
@@ -4336,10 +4337,10 @@ pub const Ready = struct {
         approximate_guild_count: ?isize,
         approximate_user_install_count: ?isize,
         bot: ?Partial(User),
-        redirect_uris: []?[]const u8,
+        redirect_uris: ?[][]const u8,
         interactions_endpoint_url: ?[]const u8,
 
-        flags: ?ApplicationFlags,
+        flags: ApplicationFlags,
         id: []const u8,
     },
 };
