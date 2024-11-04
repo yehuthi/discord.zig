@@ -64,9 +64,9 @@ or simply run ./install.sh
 * invite_create | ❌
 * invite_delete | ❌
 * message_create: ?*const fn (message: Discord.Message) void | ✅
-* message_update | ❌
-* message_delete | ❌
-* message_delete_bulk | ❌
+* message_update: ?*const fn (message: Discord.Message) void = undefined,
+* message_delete: ?*const fn (message: Discord.MessageDelete) void = undefined,
+* message_delete_bulk: ?*const fn (message: Discord.MessageDelete) void = undefined,
 * message_reaction_add | ❌
 * message_reaction_remove | ❌
 * message_reaction_remove_all | ❌

@@ -73,8 +73,9 @@ pub const GatewayDispatchEvent = struct {
     // TODO: implement // invite_create: null = null,
     // TODO: implement // invite_delete: null = null,
     message_create: ?*const fn (message: Discord.Message) void = undefined,
-    // TODO: implement // message_update: null = null,
-    // TODO: implement // message_delete: null = null,
+    message_update: ?*const fn (message: Discord.Message) void = undefined,
+    message_delete: ?*const fn (log: Discord.MessageDelete) void = undefined,
+    message_delete_bulk: ?*const fn (log: Discord.MessageDeleteBulk) void = undefined,
     // TODO: implement // message_delete_bulk: null = null,
     // TODO: implement // message_reaction_add: null = null,
     // TODO: implement // message_reaction_remove: null = null,
@@ -601,81 +602,52 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         if (self.handler.ready) |event| @call(.auto, event, .{ready});
     }
 
-    if (std.ascii.eqlIgnoreCase(name, "message_create")) {
+    if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
         const attempt = try self.parseJson(payload);
-
         const obj = attempt.getT(.object, "d").?;
-        const member_obj = obj.getT(.object, "member").?;
-        const avatar_decoration_data_member_obj = member_obj.getT(.object, "avatar_decoration_data");
-        const mentions_obj = obj.getT(.array, "mentions").?;
-        var mentions = std.ArrayList(Discord.User).init(self.allocator);
+        const data = Discord.MessageDelete{
+            .id = obj.getT(.string, "id").?,
+            .channel_id = obj.getT(.string, "channel_id").?,
+            .guild_id = obj.getT(.string, "guild_id"),
+        };
 
-        while (mentions_obj.iterator().next()) |m| {
-            try mentions.append(Parser.parseUser(&m.object));
+        if (self.handler.message_delete) |event| @call(.auto, event, .{data});
+    }
+
+    if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
+        const attempt = try self.parseJson(payload);
+        const obj = attempt.getT(.object, "d").?;
+        var ids = std.ArrayList([]const u8).init(self.allocator);
+
+        while (obj.getT(.array, "ids").?.iterator().next()) |id| {
+            ids.append(id.string.value) catch unreachable;
         }
 
-        const member = Discord.Member{
-            .deaf = member_obj.getT(.boolean, "deaf"),
-            .mute = member_obj.getT(.boolean, "mute"),
-            .pending = member_obj.getT(.boolean, "pending"),
-            .user = null,
-            .nick = member_obj.getT(.string, "nick"),
-            .avatar = member_obj.getT(.string, "avatar"),
-            .roles = &[0][]const u8{},
-            .joined_at = member_obj.getT(.string, "joined_at").?,
-            .premium_since = member_obj.getT(.string, "premium_since"),
-            .permissions = member_obj.getT(.string, "permissions"),
-            .communication_disabled_until = member_obj.getT(.string, "communication_disabled_until"),
-            .flags = @as(isize, @intCast(member_obj.getT(.integer, "flags").?)),
-            .avatar_decoration_data = if (avatar_decoration_data_member_obj) |addm| Discord.AvatarDecorationData{
-                .asset = addm.getT(.string, "asset").?,
-                .sku_id = addm.getT(.string, "sku_id").?,
-            } else null,
-        };
-
-        const author = Parser.parseUser(obj.getT(.object, "author").?);
-
-        const m = Discord.Message{
-            // the id
-            .id = obj.getT(.string, "id").?,
-            .tts = obj.getT(.boolean, "tts").?,
-            .mention_everyone = obj.getT(.boolean, "mention_everyone").?,
-            .pinned = obj.getT(.boolean, "pinned").?,
-            .type = @as(Discord.MessageTypes, @enumFromInt(obj.getT(.integer, "type").?)),
+        const data = Discord.MessageDeleteBulk{
+            .ids = ids.items,
             .channel_id = obj.getT(.string, "channel_id").?,
-            .author = author,
-            .member = member,
-            .content = obj.getT(.string, "content"),
-            .timestamp = obj.getT(.string, "timestamp").?,
             .guild_id = obj.getT(.string, "guild_id"),
-            .attachments = &[0]Discord.Attachment{},
-            .edited_timestamp = null,
-            .mentions = mentions.items,
-            .mention_roles = &[0]?[]const u8{},
-            .mention_channels = &[0]?Discord.ChannelMention{},
-            .embeds = &[0]Discord.Embed{},
-            .reactions = &[0]?Discord.Reaction{},
-            .nonce = .{ .string = obj.getT(.string, "nonce").? },
-            .webhook_id = obj.getT(.string, "webhook_id"),
-            .activity = null,
-            .application = null,
-            .application_id = obj.getT(.string, "application_id"),
-            .message_reference = null,
-            .flags = if (obj.getT(.integer, "flags")) |fs| @as(Discord.MessageFlags, @bitCast(@as(u15, @intCast(fs)))) else null,
-            .stickers = &[0]?Discord.Sticker{},
-            .referenced_message = null,
-            .message_snapshots = &[0]?Discord.MessageSnapshot{},
-            .interaction_metadata = null,
-            .interaction = null,
-            .thread = null,
-            .components = null,
-            .sticker_items = &[0]?Discord.StickerItem{},
-            .position = if (obj.getT(.integer, "position")) |p| @as(isize, @intCast(p)) else null,
-            .poll = null,
-            .call = null,
         };
 
-        if (self.handler.message_create) |event| @call(.auto, event, .{m});
+        if (self.handler.message_delete_bulk) |event| @call(.auto, event, .{data});
+    }
+
+    if (std.ascii.eqlIgnoreCase(name, "message_update")) {
+        const attempt = try self.parseJson(payload);
+        const obj = attempt.getT(.object, "d").?;
+
+        const message = Parser.parseMessage(obj);
+
+        if (self.handler.message_update) |event| @call(.auto, event, .{message});
+    }
+
+    if (std.ascii.eqlIgnoreCase(name, "message_create")) {
+        const attempt = try self.parseJson(payload);
+        const obj = attempt.getT(.object, "d").?;
+
+        const message = Parser.parseMessage(obj);
+
+        if (self.handler.message_create) |event| @call(.auto, event, .{message});
     } else {}
 }
 
