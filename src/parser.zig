@@ -1,5 +1,5 @@
 const zmpl = @import("zmpl");
-const Discord = @import("raw_types.zig");
+const Discord = @import("types.zig");
 const std = @import("std");
 
 pub fn parseUser(obj: *zmpl.Data.Object) Discord.User {

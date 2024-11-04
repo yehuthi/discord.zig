@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    const zig_tls_http = b.createModule(.{
+    const zig_tls = b.createModule(.{
         .root_source_file = b.path("lib/zig-tls12/src/entry.zig"),
         .target = target,
         .optimize = optimize,
@@ -53,6 +53,11 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .root_source_file = b.path("lib/zmpl/src/zmpl.zig"),
+    });
+
+    const deque = b.dependency("zig-deque", .{
+        .target = target,
+        .optimize = optimize,
     });
 
     const srcs = &.{
@@ -79,18 +84,19 @@ pub fn build(b: *std.Build) void {
     zlib_zig.addIncludePath(b.path("lib/zlib/"));
 
     websocket.addImport("zlib", zlib_zig);
-    websocket.addImport("tls12", zig_tls_http);
+    websocket.addImport("tls12", zig_tls);
 
     // now install your own executable after it's built correctly
 
     exe.root_module.addImport("ws", websocket);
-    exe.root_module.addImport("tls12", zig_tls_http);
+    exe.root_module.addImport("tls12", zig_tls);
     exe.root_module.addImport("zlib", zlib_zig);
     exe.root_module.addImport("zmpl", zmpl);
+    exe.root_module.addImport("deque", deque.module("zig-deque"));
 
     // test
     test_comp.root_module.addImport("ws", websocket);
-    test_comp.root_module.addImport("tls12", zig_tls_http);
+    test_comp.root_module.addImport("tls12", zig_tls);
     test_comp.root_module.addImport("zlib", zlib_zig);
 
     const run_test_comp = b.addRunArtifact(test_comp);

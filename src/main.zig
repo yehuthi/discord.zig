@@ -1,8 +1,9 @@
-const Session = @import("discord.zig");
-const Intents = @import("raw_types.zig").Intents;
-const Discord = @import("raw_types.zig");
+const Session = @import("shard.zig");
+const Discord = @import("types.zig");
+const Intents = Discord.Intents;
 const std = @import("std");
-const TOKEN = "Bot MTI5ODgzOTgzMDY3OTEzMDE4OA.GNojts.iyblGKK0xTWU57QCG5n3hr2Be1whyylTGr44P0";
+const Thread = std.Thread;
+const token = "Bot MTI5ODgzOTgzMDY3OTEzMDE4OA.GNojts.iyblGKK0xTWU57QCG5n3hr2Be1whyylTGr44P0";
 
 fn ready(payload: Discord.Ready) void {
     std.debug.print("logged in as {s}\n", .{payload.user.username});
@@ -18,7 +19,7 @@ pub fn main() !void {
     const allocator = arena.allocator();
 
     var handler = try Session.init(allocator, .{
-        .token = TOKEN,
+        .token = token,
         .intents = Intents.fromRaw(37379),
         .run = Session.GatewayDispatchEvent{
             .message_create = &message_create,
@@ -28,6 +29,6 @@ pub fn main() !void {
     });
     errdefer handler.deinit();
 
-    const t = try std.Thread.spawn(.{}, Session.readMessage, .{ &handler, null });
+    const t = try Thread.spawn(.{}, Session.readMessage, .{ &handler, null });
     defer t.join();
 }

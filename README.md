@@ -13,12 +13,42 @@ git clone https://github.com/jetzig-framework/zmpl.git ./lib/zmpl/
 or simply run ./install.sh
 
 # features
-* scalable
+* supports sharding for large bots
 * 100% API coverage, fully typed
 * faster than any other Discord library
-* language-agnostic
-* implemented from scratch
-* parses payloads using zlib
+* language-agnostic (may be used with JavaScript)
+* parses payloads using either zlib or zstd
+
+```zig
+// Sample code
+const Session = @import("discord.zig").Session;
+const Discord = @import("discord.zig").Discord;
+const Intents = Discord.Intents;
+const std = @import("std");
+
+const token = "Bot MTI5ODgzOTgzMDY3OTEzMDE4OA...";
+
+fn message_create(message: Discord.Message) void {
+    // do whatever you want
+    std.debug.print("captured: {?s}\n", .{message.content});
+}
+
+pub fn main() !void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var handler = try Session.init(allocator, .{
+        .token = token,
+        .intents = Intents.fromRaw(37379),
+        .run = Session.GatewayDispatchEvent{ .message_create = &message_create },
+    });
+    errdefer handler.deinit();
+
+    const t = try std.Thread.spawn(.{}, Session.readMessage, .{ &handler, null });
+    defer t.join();
+}
+```
 
 ## event coverage roadmap
 * application_command_permissions_update | ❌
@@ -90,33 +120,3 @@ or simply run ./install.sh
 * resumed | ❌
 * any: ?*const fn (data: []u8) void | ✅
 
-```zig
-// Sample code
-const Session = @import("discord.zig").Session;
-const Discord = @import("discord.zig").Discord;
-const Intents = Discord.Intents;
-const std = @import("std");
-
-const token = "Bot MTI5ODgzOTgzMDY3OTEzMDE4OA...";
-
-fn message_create(message: Discord.Message) void {
-    // do whatever you want
-    std.debug.print("captured: {?s}\n", .{message.content});
-}
-
-pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    var handler = try Session.init(allocator, .{
-        .token = token,
-        .intents = Intents.fromRaw(37379),
-        .run = Session.GatewayDispatchEvent{ .message_create = &message_create },
-    });
-    errdefer handler.deinit();
-
-    const t = try std.Thread.spawn(.{}, Session.readMessage, .{ &handler, null });
-    defer t.join();
-}
-```
