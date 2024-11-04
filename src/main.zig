@@ -31,7 +31,3 @@ pub fn main() !void {
     const t = try std.Thread.spawn(.{}, Session.readMessage, .{ &handler, null });
     defer t.join();
 }
-
-test "." {
-    _ = @import("types.zig");
-}
