@@ -39,6 +39,10 @@
             .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
             .hash = "122062d9dda015ba25780d00697e0e2c1cbc3ffa5b5eae55c9ea28b39b6d99ef1d85",
         },
+        .zlib = .{
+            .url = "https://github.com/yuzudev/zig-zlib/archive/refs/heads/main.zip",
+            .hash = "1220cd041e8d04f1da9d6f46d0438f4e6809b113ba3454fffdaae96b59d2b35a6b2b",
+        },
     },
     .paths = .{
         "build.zig",

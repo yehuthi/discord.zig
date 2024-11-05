@@ -1,13 +1,3 @@
-
-# commands to run
-```bash
-wget https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.gz
-tar xvf zlib-1.2.13.tar.gz
-rm zlib-1.2.13.tar.gz
-mv zlib-1.2.13 lib/zlib
-```
-or simply run ./install-zlib.sh
-
 # features
 * supports sharding for large bots
 * 100% API coverage, fully typed
