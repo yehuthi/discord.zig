@@ -1,4 +1,3 @@
-
 # Discord.zig
 
 A high-performance bleeding edge Discord library in Zig, featuring full API coverage, sharding support, and fine-tuned parsing
@@ -52,7 +51,7 @@ const exe = b.addExecutable(.{
 
 const dzig = b.dependency("discord.zig", .{});
 
-marin.root_module.addImport("discord.zig", dzig.module("discord.zig"));
+exe.root_module.addImport("discord.zig", dzig.module("discord.zig"));
 ```
 TIP: make sure you use the latest Zig!
 
