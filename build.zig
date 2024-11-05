@@ -10,32 +10,17 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
     // this is your own program
-    const exe = b.addExecutable(.{
-        // the name of your project
-        .name = "oculus-2",
-        // your main function
-        .root_source_file = b.path("src/main.zig"),
-        // references the ones you declared above
-        .target = target,
-        .optimize = optimize,
+    const dzig = b.addModule("discord.zig", .{
+        .root_source_file = b.path("src/discord.zig"),
         .link_libc = true,
     });
 
-    const test_comp = b.addTest(.{
-        .root_source_file = b.path("src/test.zig"),
+    const websocket = b.dependency("websocket", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const websocket = b.createModule(.{
-        .root_source_file = b.path("lib/websocket.zig/src/websocket.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-
-    const zig_tls = b.createModule(.{
-        .root_source_file = b.path("lib/zig-tls12/src/entry.zig"),
+    const zig_tls = b.dependency("zig-tls", .{
         .target = target,
         .optimize = optimize,
     });
@@ -48,16 +33,22 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    const zmpl = b.createModule(.{
-        //.name = "zlib",
+    const zmpl = b.dependency("zmpl", .{
         .target = target,
         .optimize = optimize,
-        .root_source_file = b.path("lib/zmpl/src/zmpl.zig"),
     });
 
     const deque = b.dependency("zig-deque", .{
         .target = target,
         .optimize = optimize,
+    });
+
+    const marin = b.addExecutable(.{
+        .name = "marin",
+        .root_source_file = b.path("src/test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
     });
 
     const srcs = &.{
@@ -83,28 +74,23 @@ pub fn build(b: *std.Build) void {
     zlib_zig.addCSourceFiles(.{ .files = srcs, .flags = &.{"-std=c89"} });
     zlib_zig.addIncludePath(b.path("lib/zlib/"));
 
-    websocket.addImport("zlib", zlib_zig);
-    websocket.addImport("tls12", zig_tls);
-
     // now install your own executable after it's built correctly
 
-    exe.root_module.addImport("ws", websocket);
-    exe.root_module.addImport("tls12", zig_tls);
-    exe.root_module.addImport("zlib", zlib_zig);
-    exe.root_module.addImport("zmpl", zmpl);
-    exe.root_module.addImport("deque", deque.module("zig-deque"));
+    dzig.addImport("ws", websocket.module("websocket"));
+    dzig.addImport("tls12", zig_tls.module("zig-tls12"));
+    dzig.addImport("zlib", zlib_zig);
+    dzig.addImport("zmpl", zmpl.module("zmpl"));
+    dzig.addImport("deque", deque.module("zig-deque"));
+
+    marin.root_module.addImport("discord.zig", dzig);
+    marin.root_module.addImport("ws", websocket.module("websocket"));
+    marin.root_module.addImport("tls12", zig_tls.module("zig-tls12"));
+    marin.root_module.addImport("zlib", zlib_zig);
+    marin.root_module.addImport("zmpl", zmpl.module("zmpl"));
+    marin.root_module.addImport("deque", deque.module("zig-deque"));
 
     // test
-    test_comp.root_module.addImport("ws", websocket);
-    test_comp.root_module.addImport("tls12", zig_tls);
-    test_comp.root_module.addImport("zlib", zlib_zig);
-
-    const run_test_comp = b.addRunArtifact(test_comp);
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&test_comp.step);
-    test_step.dependOn(&run_test_comp.step);
-
-    const run_cmd = b.addRunArtifact(exe);
+    const run_cmd = b.addRunArtifact(marin);
     run_cmd.step.dependOn(b.getInstallStep());
 
     const run_step = b.step("run", "Run the app");

@@ -27,6 +27,18 @@
             .url = "https://github.com/magurotuna/zig-deque/archive/refs/heads/main.zip",
             .hash = "1220d1bedf7d5cfc7475842b3d4e8f03f1308be2e724a036677cceb5c4db13c3da3d",
         },
+        .zmpl = .{
+            .url = "https://github.com/jetzig-framework/zmpl/archive/refs/heads/main.zip",
+            .hash = "1220d279461176a5554da195c19e025110096819004c6de86a6bb2e186ac13b63f85",
+        },
+        .@"zig-tls" = .{
+            .url = "https://github.com/yuzudev/zig-tls12/archive/refs/heads/main.zip",
+            .hash = "122079aad9eebc5945e207715c50722bbeca34e7b7a5876b3a322fad6468b28f2ed3",
+        },
+        .websocket = .{
+            .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
+            .hash = "122062d9dda015ba25780d00697e0e2c1cbc3ffa5b5eae55c9ea28b39b6d99ef1d85",
+        },
     },
     .paths = .{
         "build.zig",
