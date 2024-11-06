@@ -13,10 +13,7 @@ fn message_create(message: Discord.Message) void {
 }
 
 pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
+    const allocator = std.heap.c_allocator;
     const token = std.posix.getenv("TOKEN") orelse unreachable;
 
     var handler = try Shard.init(allocator, .{

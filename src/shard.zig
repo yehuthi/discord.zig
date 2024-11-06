@@ -185,6 +185,7 @@ inflator: zlib.Decompressor,
 mutex: std.Thread.Mutex = .{},
 log: Log = .no,
 
+/// caller must free the data
 fn parseJson(self: *Self, raw: []const u8) !zmpl.Data {
     var data = zmpl.Data.init(self.allocator);
     try data.fromJson(raw);
@@ -250,8 +251,8 @@ pub fn init(allocator: mem.Allocator, args: struct {
     }
 
     const parsed = try json.parseFromSlice(GatewayBotInfo, allocator, body, .{});
-    const url = parsed.value.url["wss://".len..];
     defer parsed.deinit();
+    const url = parsed.value.url["wss://".len..];
 
     return .{
         .allocator = allocator,
@@ -337,6 +338,8 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                 {
                     const HelloPayload = struct { heartbeat_interval: u64, _trace: [][]const u8 };
                     const parsed = try json.parseFromValue(HelloPayload, self.allocator, payload.d, .{});
+                    defer parsed.deinit();
+
                     const helloPayload = parsed.value;
 
                     // PARSE NEW URL IN READY
@@ -391,6 +394,8 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                 };
                 {
                     const parsed = try json.parseFromValue(WithSequence, self.allocator, payload.d, .{});
+                    defer parsed.deinit();
+
                     const resume_payload = parsed.value;
 
                     self.setSequence(resume_payload.seq orelse 0);
@@ -472,7 +477,7 @@ pub fn send(self: *Self, data: anytype) !void {
 
     //self.logif("{s}\n", .{string.items});
 
-    try self.client.write(string.items);
+    try self.client.write(try string.toOwnedSlice());
 }
 
 pub inline fn getSequence(self: *Self) isize {
@@ -552,7 +557,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
-        const attempt = try self.parseJson(payload);
+        var attempt = try self.parseJson(payload);
+        defer attempt.deinit();
+
         const obj = attempt.getT(.object, "d").?;
         const data = Discord.MessageDelete{
             .id = obj.getT(.string, "id").?,
@@ -564,7 +571,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
-        const attempt = try self.parseJson(payload);
+        var attempt = try self.parseJson(payload);
+        defer attempt.deinit();
+
         const obj = attempt.getT(.object, "d").?;
         var ids = std.ArrayList([]const u8).init(self.allocator);
 
@@ -582,7 +591,8 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_update")) {
-        const attempt = try self.parseJson(payload);
+        var attempt = try self.parseJson(payload);
+        defer attempt.deinit();
         const obj = attempt.getT(.object, "d").?;
 
         const message = try Parser.parseMessage(self.allocator, obj);
@@ -592,7 +602,8 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
-        const attempt = try self.parseJson(payload);
+        var attempt = try self.parseJson(payload);
+        defer attempt.deinit();
         const obj = attempt.getT(.object, "d").?;
 
         const message = try Parser.parseMessage(self.allocator, obj);
