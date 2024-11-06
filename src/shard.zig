@@ -104,7 +104,7 @@ pub const GatewayDispatchEvent = struct {
 
     ready: ?*const fn (data: Discord.Ready) void = undefined,
     // TODO: implement // resumed: null = null,
-    any: ?*const fn (data: []u8) void = undefined,
+    any: ?*const fn (data: []const u8) void = undefined,
 };
 
 const FetchReq = struct {
@@ -498,7 +498,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         self.logif("new gateway url: {s}", .{self.gatewayUrl()});
 
         const application = obj.getT(.object, "application").?;
-        const user = Parser.parseUser(obj.getT(.object, "user").?);
+        const user = try Parser.parseUser(self.allocator, obj.getT(.object, "user").?);
 
         var ready = Discord.Ready{
             .v = @as(isize, @intCast(obj.getT(.integer, "v").?)),
@@ -535,7 +535,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 .bot = null,
                 .redirect_uris = null,
                 .interactions_endpoint_url = null,
-                .flags = .{ .Embedded = true }, //@as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(application.getT(.integer, "flags").?)))),
+                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(application.getT(.integer, "flags").?)))),
                 .id = application.getT(.string, "id").?,
             },
         };
@@ -548,7 +548,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 else => unreachable,
             };
         }
-        if (self.handler.ready) |event| @call(.auto, event, .{ready});
+        if (self.handler.ready) |event| event(ready);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
@@ -560,7 +560,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             .guild_id = obj.getT(.string, "guild_id"),
         };
 
-        if (self.handler.message_delete) |event| @call(.auto, event, .{data});
+        if (self.handler.message_delete) |event| event(data);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
@@ -578,26 +578,30 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             .guild_id = obj.getT(.string, "guild_id"),
         };
 
-        if (self.handler.message_delete_bulk) |event| @call(.auto, event, .{data});
+        if (self.handler.message_delete_bulk) |event| event(data);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_update")) {
         const attempt = try self.parseJson(payload);
         const obj = attempt.getT(.object, "d").?;
 
-        const message = Parser.parseMessage(obj);
+        const message = try Parser.parseMessage(self.allocator, obj);
+        defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
 
-        if (self.handler.message_update) |event| @call(.auto, event, .{message});
+        if (self.handler.message_update) |event| event(message);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
         const attempt = try self.parseJson(payload);
         const obj = attempt.getT(.object, "d").?;
 
-        const message = Parser.parseMessage(obj);
+        const message = try Parser.parseMessage(self.allocator, obj);
+        defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
 
-        if (self.handler.message_create) |event| @call(.auto, event, .{message});
-    } else {}
+        if (self.handler.message_create) |event| event(message);
+    } else {
+        if (self.handler.any) |anyEvent| anyEvent(payload);
+    }
 }
 
 inline fn logif(self: *Self, comptime format: []const u8, args: anytype) void {

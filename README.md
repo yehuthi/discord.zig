@@ -106,7 +106,7 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 | message_create: ?*const fn (message: Discord.Message) void | ✅ |
 | message_update: ?*const fn (message: Discord.Message) void | ✅ |
 | message_delete: ?*const fn (message: Discord.MessageDelete) void | ✅ |
-| message_delete_bulk: ?*const fn (message: Discord.MessageDelete) void | ✅ |
+| message_delete_bulk: ?*const fn (message: Discord.MessageDeleteBulk) void | ✅ |
 | message_reaction_add                   | ❌       |
 | message_reaction_remove                | ❌       |
 | message_reaction_remove_all            | ❌       |
@@ -128,5 +128,5 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 | message_poll_vote_remove               | ❌       |
 | ready: ?*const fn (data: Discord.Ready) void | ✅ |
 | resumed                                | ❌       |
-| any: ?*const fn (data: []u8) void      | ✅ |
+| any: ?*const fn (data: []const u8) void      | ✅ |
 

@@ -1,8 +1,9 @@
 const zmpl = @import("zmpl");
 const Discord = @import("types.zig");
 const std = @import("std");
+const mem = std.mem;
 
-pub fn parseUser(obj: *zmpl.Data.Object) Discord.User {
+pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.User {
     const avatar_decoration_data_obj = obj.getT(.object, "avatar_decoration_data");
     const user = Discord.User{
         .clan = null,
@@ -33,7 +34,7 @@ pub fn parseUser(obj: *zmpl.Data.Object) Discord.User {
     return user;
 }
 
-pub fn parseMember(obj: *zmpl.Data.Object) Discord.Member {
+pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Member {
     const avatar_decoration_data_member_obj = obj.getT(.object, "avatar_decoration_data");
     const member = Discord.Member{
         .deaf = obj.getT(.boolean, "deaf"),
@@ -56,27 +57,35 @@ pub fn parseMember(obj: *zmpl.Data.Object) Discord.Member {
     return member;
 }
 
-pub fn parseMessage(obj: *zmpl.Data.Object) Discord.Message {
-    var buf: [1000]u8 = undefined;
-    var fba = std.heap.FixedBufferAllocator.init(&buf);
-
+/// caller must free the received referenced_message if any
+pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Message {
     // parse mentions
     const mentions_obj = obj.getT(.array, "mentions").?;
 
-    var mentions = std.ArrayList(Discord.User).init(fba.allocator());
+    var mentions = std.ArrayList(Discord.User).init(allocator);
     defer mentions.deinit();
 
     while (mentions_obj.iterator().next()) |m| {
-        mentions.append(parseUser(&m.object)) catch unreachable;
+        try mentions.append(try parseUser(allocator, &m.object));
     }
 
     // parse member
-    const member = parseMember(obj.getT(.object, "member").?);
+    const member = try parseMember(allocator, obj.getT(.object, "member").?);
 
     // parse message
-    const author = parseUser(obj.getT(.object, "author").?);
+    const author = try parseUser(allocator, obj.getT(.object, "author").?);
 
-    //_ = if (obj.getT(.object, "referenced_message")) |m| parseMessage(m) else null;
+    // the referenced_message if any
+    const refmp = try allocator.create(Discord.Message);
+
+    var invalid_ptr = false;
+
+    if (obj.getT(.object, "referenced_message")) |m| {
+        refmp.* = try parseMessage(allocator, m);
+    } else {
+        allocator.destroy(refmp);
+        invalid_ptr = true;
+    }
 
     // parse message
     const message = Discord.Message{
@@ -94,7 +103,7 @@ pub fn parseMessage(obj: *zmpl.Data.Object) Discord.Message {
         .guild_id = obj.getT(.string, "guild_id"),
         .attachments = &[0]Discord.Attachment{},
         .edited_timestamp = null,
-        .mentions = mentions.items,
+        .mentions = try mentions.toOwnedSlice(),
         .mention_roles = &[0]?[]const u8{},
         .mention_channels = &[0]?Discord.ChannelMention{},
         .embeds = &[0]Discord.Embed{},
@@ -116,7 +125,7 @@ pub fn parseMessage(obj: *zmpl.Data.Object) Discord.Message {
         .position = if (obj.getT(.integer, "position")) |p| @as(isize, @intCast(p)) else null,
         .poll = null,
         .call = null,
-        .referenced_message = null,
+        .referenced_message = if (invalid_ptr) null else refmp,
     };
     return message;
 }
