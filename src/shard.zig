@@ -685,7 +685,7 @@ pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []cons
                 .referrer_current = "",
                 .referring_domain_current = "",
                 .release_channel = "stable",
-                .client_build_number = 342245,
+                .client_build_number = 342245, // TODO we should make an script to fetch this...
                 .client_event_source = null,
             },
         };
