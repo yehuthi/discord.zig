@@ -4312,8 +4312,8 @@ pub const Ready = struct {
     resume_gateway_url: []const u8,
     /// The shard information associated with this session, if sent when identifying
     shard: ?[2]isize,
-    /// Contains id and flags
-    application: struct {
+    /// Contains id and flags, only sent to bots
+    application: ?struct {
         name: ?[]const u8,
         description: ?[]const u8,
         rpc_origins: ?[]?[]const u8,

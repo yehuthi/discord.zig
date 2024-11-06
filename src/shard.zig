@@ -172,6 +172,7 @@ allocator: mem.Allocator,
 resume_gateway_url: ?[]const u8 = null,
 info: GatewayBotInfo,
 
+properties: IdentifyProperties = _default_properties,
 session_id: ?[]const u8,
 sequence: isize,
 heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
@@ -213,26 +214,36 @@ inline fn gatewayUrl(self: ?*Self) []const u8 {
 }
 
 // identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
-fn identify(self: *Self) !void {
+fn identify(self: *Self, properties: ?IdentifyProperties) !void {
     self.logif("intents: {d}", .{self.intents.toRaw()});
-    const data = .{
-        .op = @intFromEnum(Opcode.Identify),
-        .d = .{
-            //.compress = false,
-            .intents = self.intents.toRaw(),
-            .properties = Self._default_properties,
-            .token = self.token,
-        },
-    };
 
-    // try posting our shitty data
-    try self.send(data);
+    if (self.intents.toRaw() != 0) {
+        const data = .{
+            .op = @intFromEnum(Opcode.Identify),
+            .d = .{
+                .intents = self.intents.toRaw(),
+                .properties = properties orelse Self._default_properties,
+                .token = self.token,
+            },
+        };
+        try self.send(data);
+    } else {
+        const data = .{
+            .op = @intFromEnum(Opcode.Identify),
+            .d = .{
+                .capabilities = 30717,
+                .properties = properties orelse Self._default_properties,
+                .token = self.token,
+            },
+        };
+        try self.send(data);
+    }
 }
 
 const Log = union(enum) { yes, no };
 
 // asks /gateway/bot initializes both the ws client and the http client
-pub fn init(allocator: mem.Allocator, args: struct {
+pub fn login(allocator: mem.Allocator, args: struct {
     token: []const u8,
     intents: Intents,
     run: GatewayDispatchEvent,
@@ -365,7 +376,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                         try self.resume_();
                         return;
                     } else {
-                        try self.identify();
+                        try self.identify(self.properties);
                     }
                 }
             },
@@ -502,7 +513,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
 
         self.logif("new gateway url: {s}", .{self.gatewayUrl()});
 
-        const application = obj.getT(.object, "application").?;
+        const application = obj.getT(.object, "application");
         const user = try Parser.parseUser(self.allocator, obj.getT(.object, "user").?);
 
         var ready = Discord.Ready{
@@ -512,7 +523,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             .session_id = obj.getT(.string, "session_id").?,
             .guilds = &[0]Discord.UnavailableGuild{},
             .resume_gateway_url = obj.getT(.string, "resume_gateway_url").?,
-            .application = .{
+            .application = if (application) |app| .{
                 // todo
                 .name = null,
                 .description = null,
@@ -540,9 +551,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 .bot = null,
                 .redirect_uris = null,
                 .interactions_endpoint_url = null,
-                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(application.getT(.integer, "flags").?)))),
-                .id = try Shared.Snowflake.fromRaw(application.getT(.string, "id").?),
-            },
+                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(app.getT(.integer, "flags").?)))),
+                .id = try Shared.Snowflake.fromRaw(app.getT(.string, "id").?),
+            } else null,
         };
 
         const shard = obj.getT(.array, "shard");
@@ -612,6 +623,74 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         if (self.handler.message_create) |event| event(message);
     } else {
         if (self.handler.any) |anyEvent| anyEvent(payload);
+    }
+}
+
+pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []const u8, password: []const u8, run: GatewayDispatchEvent, log: Log }) !Self {
+    const AUTH_LOGIN = "https://discord.com/api/v9/auth/login";
+    const WS_CONNECT = "gateway.discord.gg";
+
+    var body = std.ArrayList(u8).init(allocator);
+
+    const AuthLoginResponse = struct { user_id: []const u8, token: []const u8, user_settings: struct { locale: []const u8, theme: []const u8 } };
+
+    var fetch_options = HttpClient.FetchOptions{
+        .location = HttpClient.FetchOptions.Location{
+            .url = AUTH_LOGIN,
+        },
+        .extra_headers = &[_]http.Header{
+            http.Header{ .name = "Accept", .value = "application/json" },
+            http.Header{ .name = "Content-Type", .value = "application/json" },
+        },
+        .method = .POST,
+        .response_storage = .{ .dynamic = &body },
+    };
+
+    fetch_options.payload = try json.stringifyAlloc(allocator, .{
+        .login = settings.login,
+        .password = settings.password,
+    }, .{});
+
+    var client = HttpClient{ .allocator = allocator };
+    defer client.deinit();
+
+    const res = try client.fetch(fetch_options);
+
+    if (res.status == std.http.Status.ok) {
+        const response = try std.json.parseFromSliceLeaky(AuthLoginResponse, allocator, try body.toOwnedSlice(), .{});
+
+        return .{
+            .allocator = allocator,
+            .token = response.token,
+            .intents = @bitCast(@as(u28, @intCast(0))),
+            // maybe there is a better way to do this
+            .client = try Self._connect_ws(allocator, WS_CONNECT),
+            .session_id = undefined,
+            .sequence = 0,
+            .info = GatewayBotInfo{ .url = "wss://" ++ WS_CONNECT, .shards = 0, .session_start_limit = null },
+            .handler = settings.run,
+            .log = settings.log,
+            .packets = std.ArrayList(u8).init(allocator),
+            .inflator = try zlib.Decompressor.init(allocator, .{ .header = .zlib_or_gzip }),
+            .properties = IdentifyProperties{
+                .os = "Linux",
+                .browser = "Firefox",
+                .device = "",
+                .system_locale = "en-US",
+                .browser_user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0",
+                .browser_version = "132.0",
+                .os_version = "",
+                .referrer = "",
+                .referring_domain = "",
+                .referrer_current = "",
+                .referring_domain_current = "",
+                .release_channel = "stable",
+                .client_build_number = 342245,
+                .client_event_source = null,
+            },
+        };
+    } else {
+        return error.effn;
     }
 }
 

@@ -13,6 +13,18 @@ pub const IdentifyProperties = struct {
     /// The device on which the shard is running.
     ///
     device: []const u8,
+
+    system_locale: ?[]const u8 = null, // TODO parse this
+    browser_user_agent: ?[]const u8 = null,
+    browser_version: ?[]const u8 = null,
+    os_version: ?[]const u8 = null,
+    referrer: ?[]const u8 = null,
+    referring_domain: ?[]const u8 = null,
+    referrer_current: ?[]const u8 = null,
+    referring_domain_current: ?[]const u8 = null,
+    release_channel: ?[]const u8 = null,
+    client_build_number: ?u64 = null,
+    client_event_source: ?[]const u8 = null,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#get-gateway

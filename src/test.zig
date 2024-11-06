@@ -16,7 +16,7 @@ pub fn main() !void {
     const allocator = std.heap.c_allocator;
     const token = std.posix.getenv("TOKEN") orelse unreachable;
 
-    var handler = try Shard.init(allocator, .{
+    var handler = try Shard.login(allocator, .{
         .token = token,
         .intents = Intents.fromRaw(37379),
         .run = Shard.GatewayDispatchEvent{
