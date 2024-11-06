@@ -1,5 +1,6 @@
 const std = @import("std");
 const AutoArrayHashMap = std.AutoArrayHashMap;
+const Snowflake = @import("shared.zig").Snowflake;
 
 pub fn Omit(comptime T: type, comptime field_names: anytype) type {
     const info = @typeInfo(T);
@@ -1326,7 +1327,7 @@ pub const User = struct {
     /// the user's banner color encoded as an integer representation of hexadecimal color code
     accent_color: ?isize,
     /// The user's id
-    id: []const u8,
+    id: Snowflake,
     /// The user's discord-tag
     discriminator: []const u8,
     /// The user's avatar hash
@@ -1480,7 +1481,7 @@ pub const OAuth2Scope = enum {
 /// https://discord.com/developers/docs/resources/guild#integration-object-integration-structure
 pub const Integration = struct {
     /// Integration Id
-    id: []const u8,
+    id: Snowflake,
     /// Integration name
     name: []const u8,
     /// Integration type (twitch, youtube, discord, or guild_subscription).
@@ -1494,7 +1495,7 @@ pub const Integration = struct {
     /// Is this integration syncing
     syncing: ?bool,
     /// Role Id that this integration uses for "subscribers"
-    role_id: ?[]const u8,
+    role_id: ?Snowflake,
     /// Whether emoticons should be synced for this integration (twitch only currently)
     enable_emoticons: ?bool,
     /// The behavior of expiring subscribers
@@ -1520,7 +1521,7 @@ pub const Integration = struct {
 /// https://discord.com/developers/docs/resources/guild#integration-account-object-integration-account-structure
 pub const IntegrationAccount = struct {
     /// Id of the account
-    id: []const u8,
+    id: Snowflake,
     /// Name of the account
     name: []const u8,
 };
@@ -1528,7 +1529,7 @@ pub const IntegrationAccount = struct {
 /// https://discord.com/developers/docs/resources/guild#integration-application-object-integration-application-structure
 pub const IntegrationApplication = struct {
     /// The id of the app
-    id: []const u8,
+    id: Snowflake,
     /// The name of the app
     name: []const u8,
     /// the icon hash of the app
@@ -1542,7 +1543,7 @@ pub const IntegrationApplication = struct {
 /// https://github.com/discord/discord-api-docs/blob/master/docs/topics/Gateway.md#integration-create-event-additional-fields
 pub const IntegrationCreateUpdate = struct {
     /// Integration Id
-    id: []const u8,
+    id: Snowflake,
     /// Integration name
     name: []const u8,
     /// Integration type (twitch, youtube, discord, or guild_subscription).
@@ -1556,7 +1557,7 @@ pub const IntegrationCreateUpdate = struct {
     /// Is this integration syncing
     syncing: ?bool,
     /// Role Id that this integration uses for "subscribers"
-    role_id: ?[]const u8,
+    role_id: ?Snowflake,
     /// Whether emoticons should be synced for this integration (twitch only currently)
     enable_emoticons: ?bool,
     /// The behavior of expiring subscribers
@@ -1578,23 +1579,23 @@ pub const IntegrationCreateUpdate = struct {
     /// the scopes the application has been authorized for
     scopes: []OAuth2Scope,
     /// Id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
 };
 
 /// https://github.com/discord/discord-api-docs/blob/master/docs/topics/Gateway.md#integration-delete-event-fields
 pub const IntegrationDelete = struct {
     /// Integration id
-    id: []const u8,
+    id: Snowflake,
     /// Id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Id of the bot/OAuth2 application for this discord integration
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-integrations-update
 pub const GuildIntegrationsUpdate = struct {
     /// id of the guild whose integrations were updated
-    guild_id: []const u8,
+    guild_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#typing-start
@@ -1602,11 +1603,11 @@ pub const TypingStart = struct {
     /// Unix time (in seconds) of when the user started typing
     timestamp: isize,
     /// id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The member who started typing if this happened in a guild
     member: ?Member,
 };
@@ -1646,7 +1647,7 @@ pub const AvatarDecorationData = struct {
     /// the avatar decoration hash
     asset: []const u8,
     /// id of the avatar decoration's SKU
-    sku_id: []const u8,
+    sku_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/application#application-object
@@ -1664,13 +1665,13 @@ pub const Application = struct {
     /// The hex encoded key for verification in interactions and the GameSDK's GetTicket
     verify_key: []const u8,
     ///If this application is a game sold on , this field will be the id of the "Game SKU" that is created, if exists
-    primary_sku_id: ?[]const u8,
+    primary_sku_id: ?Snowflake,
     ///If this application is a game sold on , this field will be the URL slug that links to the store page
     slug: ?[]const u8,
     /// The application's public flags
     flags: ?ApplicationFlags,
     /// The id of the app
-    id: []const u8,
+    id: Snowflake,
     /// The icon hash of the app
     icon: ?[]const u8,
     /// When false only app owner can join the app's bot to guilds
@@ -1682,7 +1683,7 @@ pub const Application = struct {
     /// If the application belongs to a team, this will be a list of the members of that team
     team: ?Team,
     /// Guild associated with the app. For example, a developer support server.
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// A partial object of the associated guild
     guild: ?Partial(Guild),
     ///If this application is a game sold on , this field will be the hash of the image on store embeds
@@ -1794,7 +1795,7 @@ pub const CurrentAuthorization = struct {
 /// https://discord.com/developers/docs/resources/user#connection-object-connection-structure
 pub const Connection = struct {
     /// id of the connection account
-    id: []const u8,
+    id: Snowflake,
     /// the username of the connection account
     name: []const u8,
     /// the service of this connection
@@ -1865,11 +1866,11 @@ pub const Team = struct {
     /// Hash of the image of the team's icon
     icon: ?[]const u8,
     /// Unique ID of the team
-    id: []const u8,
+    id: Snowflake,
     /// Members of the team
     members: []TeamMember,
     /// User ID of the current team owner
-    owner_user_id: []const u8,
+    owner_user_id: Snowflake,
     /// Name of the team
     name: []const u8,
 };
@@ -1879,12 +1880,12 @@ pub const TeamMember = struct {
     /// The user's membership state on the team
     membership_state: TeamMembershipStates,
     /// The id of the parent team of which they are a member
-    team_id: []const u8,
+    team_id: Snowflake,
     /// The avatar, discriminator, id, username, and global_name of the user
     /// TODO: needs fixing
     user: struct {
         /// Unique ID of the user
-        id: []const u8,
+        id: Snowflake,
         /// The user's username, not unique across the platform
         username: []const u8,
         /// The user's display name, if it is set. For bots, this is the application name
@@ -1899,9 +1900,9 @@ pub const TeamMember = struct {
 /// https://discord.com/developers/docs/topics/gateway#webhooks-update-webhook-update-event-fields
 pub const WebhookUpdate = struct {
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/channel#allowed-mentions-object
@@ -2036,7 +2037,7 @@ pub const Attachment = struct {
     /// A proxied url of file
     proxy_url: []const u8,
     /// Attachment id
-    id: []const u8,
+    id: Snowflake,
     /// description for the file (max 1024 characters)
     description: ?[]const u8,
     /// Height of file (if image)
@@ -2066,11 +2067,11 @@ pub const IncomingWebhook = struct {
     url: ?[]const u8,
 
     /// The id of the webhook
-    id: []const u8,
+    id: Snowflake,
     /// The guild id this webhook is for
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The channel id this webhook is for
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The user this webhook was created by (not returned when getting a webhook with its token)
     user: ?User,
     /// The default name of the webhook
@@ -2078,7 +2079,7 @@ pub const IncomingWebhook = struct {
     /// The default user avatar hash of the webhook
     avatar: ?[]const u8,
     /// The bot/OAuth2 application that created this webhook
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// The guild of the channel that this webhook is following (returned for Channel Follower Webhooks)
     source_guild: ?Partial(Guild),
     /// The channel that this webhook is following (returned for Channel Follower Webhooks)
@@ -2094,11 +2095,11 @@ pub const ApplicationWebhook = struct {
     url: ?[]const u8,
 
     /// The id of the webhook
-    id: []const u8,
+    id: Snowflake,
     /// The guild id this webhook is for
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The channel id this webhook is for
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// The user this webhook was created by (not returned when getting a webhook with its token)
     user: ?User,
     /// The default name of the webhook
@@ -2106,7 +2107,7 @@ pub const ApplicationWebhook = struct {
     /// The default user avatar hash of the webhook
     avatar: ?[]const u8,
     /// The bot/OAuth2 application that created this webhook
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// The guild of the channel that this webhook is following (returned for Channel Follower Webhooks), field will be absent if the webhook creator has since lost access to the guild where the followed channel resides
     source_guild: ?Partial(Guild),
     /// The channel that this webhook is following (returned for Channel Follower Webhooks), field will be absent if the webhook creator has since lost access to the guild where the followed channel resides
@@ -2166,7 +2167,7 @@ pub const Guild = struct {
     /// Whether the guild has the boost progress bar enabled
     premium_progress_bar_enabled: bool,
     /// Guild id
-    id: []const u8,
+    id: Snowflake,
     /// Icon hash
     icon: ?[]const u8,
     /// Icon hash, returned when in the template object
@@ -2176,23 +2177,23 @@ pub const Guild = struct {
     /// Discovery splash hash; only present for guilds with the "DISCOVERABLE" feature
     discovery_splash: ?[]const u8,
     /// Id of the owner
-    owner_id: []const u8,
+    owner_id: Snowflake,
     /// Total permissions for the user in the guild (excludes overwrites and implicit permissions)
     permissions: ?[]const u8,
     /// Id of afk channel
-    afk_channel_id: ?[]const u8,
+    afk_channel_id: ?Snowflake,
     /// The channel id that the widget will generate an invite to, or null if set to no invite
-    widget_channel_id: ?[]const u8,
+    widget_channel_id: ?Snowflake,
     /// Roles in the guild
     roles: []Role,
     /// Custom guild emojis
     emojis: []Emoji,
     /// Application id of the guild creator if it is bot-created
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// The id of the channel where guild notices such as welcome messages and boost events are posted
-    system_channel_id: ?[]const u8,
+    system_channel_id: ?Snowflake,
     /// The id of the channel where community guilds can display rules and/or guidelines
-    rules_channel_id: ?[]const u8,
+    rules_channel_id: ?Snowflake,
     /// When this guild was joined at
     joined_at: ?[]const u8,
     /// States of members currently in voice channels; lacks the guild_id key
@@ -2210,7 +2211,7 @@ pub const Guild = struct {
     ///The preferred locale of a Community guild; used in server discovery and notices from ; defaults to "en-US"
     preferred_locale: []const u8,
     ///The id of the channel where admins and moderators of Community guilds receive notices from
-    public_updates_channel_id: ?[]const u8,
+    public_updates_channel_id: ?Snowflake,
     /// The welcome screen of a Community guild, shown to new members, returned in an Invite's guild object
     welcome_screen: ?WelcomeScreen,
     /// Stage instances in the guild
@@ -2218,13 +2219,13 @@ pub const Guild = struct {
     /// Custom guild stickers
     stickers: []?Sticker,
     ///The id of the channel where admins and moderators of Community guilds receive safety alerts from
-    safety_alerts_channel_id: ?[]const u8,
+    safety_alerts_channel_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-structure
 pub const Role = struct {
     /// Role id
-    id: []const u8,
+    id: Snowflake,
     /// If this role is showed separately in the user listing
     hoist: bool,
     /// Permission bit set
@@ -2252,14 +2253,14 @@ pub const Role = struct {
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
 pub const RoleTags = struct {
     /// The id of the bot this role belongs to
-    bot_id: ?[]const u8,
+    bot_id: ?Snowflake,
     /// The id of the integration this role belongs to
-    integration_id: ?[]const u8,
+    integration_id: ?Snowflake,
     /// Whether this is the guild's premium subscriber role
     /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
     premium_subscriber: ?bool,
     /// Id of this role's subscription sku and listing.
-    subscription_listing_id: ?[]const u8,
+    subscription_listing_id: ?Snowflake,
     /// Whether this role is available for purchase.
     /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
     available_for_purchase: ?bool,
@@ -2273,7 +2274,7 @@ pub const Emoji = struct {
     /// Emoji name (can only be null in reaction emoji objects)
     name: ?[]const u8,
     /// Emoji id
-    id: ?[]const u8,
+    id: ?Snowflake,
     /// Roles allowed to use this emoji
     roles: []?[]const u8,
     /// User that created this emoji
@@ -2293,11 +2294,11 @@ pub const VoiceState = struct {
     /// The session id for this voice state
     session_id: []const u8,
     /// The guild id this voice state is for
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The channel id this user is connected to
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// The user id this voice state is for
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The guild member this voice state is for
     member: ?MemberWithUser,
     /// Whether this user is deafened by the server
@@ -2321,11 +2322,11 @@ pub const VoiceState = struct {
 /// https://discord.com/developers/docs/resources/channel#channel-object
 pub const Channel = struct {
     /// The id of the channel
-    id: []const u8,
+    id: Snowflake,
     /// The type of channel
     type: ChannelTypes,
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// Sorting position of the channel (channels with the same position are sorted by id)
     position: ?isize,
     /// Explicit permission overwrites for members and roles
@@ -2337,7 +2338,7 @@ pub const Channel = struct {
     /// Whether the channel is nsfw
     nsfw: ?bool,
     /// The id of the last message sent in this channel (may not point to an existing or valid message)
-    last_message_id: ?[]const u8,
+    last_message_id: ?Snowflake,
     /// The bitrate (in bits) of the voice or stage channel
     bitrate: ?isize,
     /// The user limit of the voice or stage channel
@@ -2349,13 +2350,13 @@ pub const Channel = struct {
     /// icon hash of the group DM
     icon: ?[]const u8,
     /// Id of the creator of the thread
-    owner_id: ?[]const u8,
+    owner_id: ?Snowflake,
     /// Application id of the group DM creator if it is bot-created
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// For group DM channels: whether the channel is managed by an application via the `gdm.join` OAuth2 scope.,
     managed: ?bool,
     /// For guild channels: Id of the parent category for a channel (each parent category can contain up to 50 channels), for threads: id of the text channel this thread was created,
-    parent_id: ?[]const u8,
+    parent_id: ?Snowflake,
     /// When the last pinned message was pinned. This may be null in events such as GUILD_CREATE when a message is not pinned.
     last_pin_timestamp: ?[]const u8,
     /// Voice region id for the voice or stage channel, automatic when set to null
@@ -2406,7 +2407,7 @@ pub const PresenceUpdate = struct {
     /// The user presence is being updated for
     user: User,
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// User's current activities
     activities: []Activity,
     /// User's platform-dependent status
@@ -2426,9 +2427,9 @@ pub const WelcomeScreenChannel = struct {
     /// The description shown for the channel
     description: []const u8,
     /// The channel's id
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The emoji id, if the emoji is custom
-    emoji_id: ?[]const u8,
+    emoji_id: ?Snowflake,
     /// The emoji name if custom, the unicode character if standard, or `null` if no emoji is set
     emoji_name: ?[]const u8,
 };
@@ -2438,13 +2439,13 @@ pub const StageInstance = struct {
     /// The topic of the Stage instance (1-120 characters)
     topic: []const u8,
     /// The id of this Stage instance
-    id: []const u8,
+    id: Snowflake,
     /// The guild id of the associated Stage channel
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The id of the associated Stage channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the scheduled event for this Stage instance
-    guild_scheduled_event_id: ?[]const u8,
+    guild_scheduled_event_id: ?Snowflake,
 };
 
 pub const ThreadMetadata = struct {
@@ -2466,9 +2467,9 @@ pub const ThreadMember = struct {
     /// Any user-thread settings, currently only used for notifications
     flags: isize,
     /// The id of the thread
-    id: []const u8,
+    id: Snowflake,
     /// The id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The time the current user last joined the thread
     join_timestamp: []const u8,
 };
@@ -2494,7 +2495,7 @@ pub const Activity = struct {
     /// Unix timestamps for start and/or end of the game
     timestamps: ?ActivityTimestamps,
     /// Application id for the game
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// The emoji used for a custom status
     emoji: ?ActivityEmoji,
     /// Information for the current party of the player
@@ -2510,11 +2511,11 @@ pub const Activity = struct {
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object
 pub const ActivityInstance = struct {
     /// Application ID
-    application_id: []const u8,
+    application_id: Snowflake,
     /// Activity Instance ID
-    instance_id: []const u8,
+    instance_id: Snowflake,
     /// Unique identifier for the launch
-    launch_id: []const u8,
+    launch_id: Snowflake,
     /// The Location the instance is runnning in
     location: ActivityLocation,
     /// The IDs of the Users currently connected to the instance
@@ -2524,13 +2525,13 @@ pub const ActivityInstance = struct {
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-object
 pub const ActivityLocation = struct {
     /// The unique identifier for the location
-    id: []const u8,
+    id: Snowflake,
     /// Enum describing kind of location
     kind: ActivityLocationKind,
     /// The id of the Channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the Guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-kind-enum
@@ -2566,7 +2567,7 @@ pub const ActivityEmoji = struct {
     /// Whether this emoji is animated
     animated: ?bool,
     /// The id of the emoji
-    id: ?[]const u8,
+    id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-party
@@ -2574,7 +2575,7 @@ pub const ActivityParty = struct {
     /// Used to show the party's current and maximum size
     size: ?[2]i64,
     /// The id of the party
-    id: ?[]const u8,
+    id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-assets
@@ -2611,7 +2612,7 @@ pub const Overwrite = struct {
     /// Either 0 (role) or 1 (member)
     type: OverwriteTypes,
     /// Role or user id
-    id: []const u8,
+    id: Snowflake,
     /// Permission bit set
     allow: ?[]const u8,
     /// Permission bit set
@@ -2654,14 +2655,14 @@ pub const MessageComponent = isize;
 /// https://discord.com/developers/docs/resources/channel#message-object
 pub const Message = struct {
     /// id of the message
-    id: []const u8,
+    id: Snowflake,
     /// id of the channel the message was sent in
-    channel_id: []const u8,
+    channel_id: Snowflake,
     ///
     /// id of the guild the message was sent in
     /// Note: For MESSAGE_CREATE and MESSAGE_UPDATE events, the message object may not contain a guild_id or member field since the events are sent directly to the receiving user and the bot who sent the message, rather than being sent through the guild like non-ephemeral messages.,
     ///
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     ///
     /// The author of this message (not guaranteed to be a valid user)
     /// Note: The author object follows the structure of the user object, but is only a valid user in the case where the message is generated by a user or bot user. If the message is generated by a webhook, the author object corresponds to the webhook's id, username, and avatar. You can tell if a message is generated by a webhook by checking for the webhook_id on the message object.,
@@ -2708,7 +2709,7 @@ pub const Message = struct {
     /// Whether this message is pinned
     pinned: bool,
     /// If the message is generated by a webhook, this is the webhook's id
-    webhook_id: ?[]const u8,
+    webhook_id: ?Snowflake,
     /// Type of message
     type: MessageTypes,
     /// Sent with Rich Presence-related chat embeds
@@ -2716,7 +2717,7 @@ pub const Message = struct {
     /// Sent with Rich Presence-related chat embeds
     application: ?Partial(Application),
     /// if the message is an Interaction or application-owned webhook, this is the id of the application
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     /// Data showing the source of a crosspost, channel follow add, pin, or reply message
     message_reference: ?Omit(MessageReference, .{"failIfNotExists"}),
     /// Message flags combined as a bitfield
@@ -2766,9 +2767,9 @@ pub const MessageCall = struct {
 /// https://discord.com/developers/docs/resources/channel#channel-mention-object
 pub const ChannelMention = struct {
     /// id of the channel
-    id: []const u8,
+    id: Snowflake,
     /// id of the guild containing the channel
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The type of channel
     type: isize,
     /// The name of the channel
@@ -2810,7 +2811,7 @@ pub const MessageActivity = struct {
     /// Type of message activity
     type: MessageActivityTypes,
     /// `party_id` from a Rich Presence event
-    party_id: ?[]const u8,
+    party_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-reference-structure
@@ -2818,14 +2819,14 @@ pub const MessageReference = struct {
     /// Type of reference
     type: ?MessageReferenceType,
     /// id of the originating message
-    message_id: ?[]const u8,
+    message_id: ?Snowflake,
     ///
     /// id of the originating message's channel
     /// Note: `channel_id` is optional when creating a reply, but will always be present when receiving an event/response that includes this data model.,
     ///
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// id of the originating message's guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// When sending, whether to error if the referenced message doesn't exist instead of sending as a normal (non-reply) message, default true
     fail_if_not_exists: bool,
 };
@@ -2868,7 +2869,7 @@ pub const MessageSnapshot = struct {
             premium_type: ?PremiumTypes,
             public_flags: ?isize,
             accent_color: ?isize,
-            id: []const u8,
+            id: Snowflake,
             discriminator: []const u8,
             avatar: ?[]const u8,
             bot: ?bool,
@@ -2982,13 +2983,13 @@ pub const GetAnswerVotesResponse = struct {
 /// https://discord.com/developers/docs/topics/gateway-events#message-poll-vote-add
 pub const PollVoteAdd = struct {
     /// ID of the user. Usually a snowflake
-    user_id: []const u8,
+    user_id: Snowflake,
     /// ID of the channel. Usually a snowflake
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// ID of the message. Usually a snowflake
-    message_id: []const u8,
+    message_id: Snowflake,
     /// ID of the guild. Usually a snowflake
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// ID of the answer.
     answer_id: isize,
 };
@@ -2996,13 +2997,13 @@ pub const PollVoteAdd = struct {
 /// https://discord.com/developers/docs/topics/gateway-events#message-poll-vote-remove
 pub const PollVoteRemove = struct {
     /// ID of the user. Usually a snowflake
-    user_id: []const u8,
+    user_id: Snowflake,
     /// ID of the channel. Usually a snowflake
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// ID of the message. Usually a snowflake
-    message_id: []const u8,
+    message_id: Snowflake,
     /// ID of the guild. Usually a snowflake
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// ID of the answer.
     answer_id: isize,
 };
@@ -3010,9 +3011,9 @@ pub const PollVoteRemove = struct {
 /// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-structure
 pub const Sticker = struct {
     /// [Id of the sticker](https://discord.com/developers/docs/reference#image-formatting)
-    id: []const u8,
+    id: Snowflake,
     /// Id of the pack the sticker is from
-    pack_id: ?[]const u8,
+    pack_id: ?Snowflake,
     /// Name of the sticker
     name: []const u8,
     /// Description of the sticker
@@ -3026,7 +3027,7 @@ pub const Sticker = struct {
     ///  Whether or not the sticker is available
     available: ?bool,
     /// Id of the guild that owns this sticker
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The user that uploaded the sticker
     user: ?User,
     /// A sticker's sort order within a pack
@@ -3036,7 +3037,7 @@ pub const Sticker = struct {
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
 pub const MessageInteraction = struct {
     /// Id of the interaction
-    id: []const u8,
+    id: Snowflake,
     /// The type of interaction
     type: InteractionTypes,
     /// The name of the ApplicationCommand including the name of the subcommand/subcommand group
@@ -3050,7 +3051,7 @@ pub const MessageInteraction = struct {
 /// https://discord.com/developers/docs/resources/channel#message-interaction-metadata-object-message-interaction-metadata-structure
 pub const MessageInteractionMetadata = struct {
     /// Id of the interaction
-    id: []const u8,
+    id: Snowflake,
     /// The type of interaction
     type: InteractionTypes,
     /// User who triggered the interaction
@@ -3058,9 +3059,9 @@ pub const MessageInteractionMetadata = struct {
     /// IDs for installation context(s) related to an interaction
     authorizing_integration_owners: Partial(AutoArrayHashMap(ApplicationIntegrationType, []const u8)),
     /// ID of the original response message, present only on follow-up messages
-    original_response_message_id: ?[]const u8,
+    original_response_message_id: ?Snowflake,
     /// ID of the message that contained interactive component, present only on messages created from component interactions
-    interacted_message_id: ?[]const u8,
+    interacted_message_id: ?Snowflake,
     /// Metadata for the interaction that was used to open the modal, present only on modal submit interactions
     /// TAKES A POINTER
     triggering_interaction_metadata: ?*MessageInteractionMetadata,
@@ -3069,7 +3070,7 @@ pub const MessageInteractionMetadata = struct {
 /// https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
 pub const StickerItem = struct {
     /// Id of the sticker
-    id: []const u8,
+    id: Snowflake,
     /// Name of the sticker
     name: []const u8,
     /// [Type of sticker format](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)
@@ -3079,32 +3080,32 @@ pub const StickerItem = struct {
 /// https://discord.com/developers/docs/resources/sticker#sticker-pack-object-sticker-pack-structure
 pub const StickerPack = struct {
     /// id of the sticker pack
-    id: []const u8,
+    id: Snowflake,
     /// the stickers in the pack
     stickers: []Sticker,
     /// name of the sticker pack
     name: []const u8,
     /// id of the pack's SKU
-    sku_id: []const u8,
+    sku_id: Snowflake,
     /// id of a sticker in the pack which is shown as the pack's icon
-    cover_sticker_id: ?[]const u8,
+    cover_sticker_id: ?Snowflake,
     /// description of the sticker pack
     description: []const u8,
     /// id of the sticker pack's [banner image](https://discord.com/developers/docs/reference#image-formatting)
-    banner_asset_id: ?[]const u8,
+    banner_asset_id: ?Snowflake,
 };
 
 pub const Interaction = struct {
     /// Id of the interaction
-    id: []const u8,
+    id: Snowflake,
     /// Id of the application this interaction is for
-    application_id: []const u8,
+    application_id: Snowflake,
     /// The type of interaction
     type: InteractionTypes,
     /// Guild that the interaction was sent from
     guild: ?Partial(Guild),
     /// The guild it was sent from
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The channel it was sent from
     channel: Partial(Channel),
     ///
@@ -3113,7 +3114,7 @@ pub const Interaction = struct {
     /// @remarks
     /// It is recommended that you begin using this channel field to identify the source channel of the interaction as they may deprecate the existing channel_id field in the future.
     ///
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// Guild member data for the invoking user, including permissions
     member: ?InteractionMember,
     /// User object for the invoking user, if invoked in a DM
@@ -3151,13 +3152,13 @@ pub const InteractionCallbackResponse = struct {
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-object
 pub const InteractionCallback = struct {
     /// ID of the interaction
-    id: []const u8,
+    id: Snowflake,
     /// Interaction type
     type: InteractionTypes,
     /// Instance ID of the Activity if one was launched or joined
-    activity_instance_id: ?[]const u8,
+    activity_instance_id: ?Snowflake,
     /// ID of the message that was created by the interaction
-    response_message_id: ?[]const u8,
+    response_message_id: ?Snowflake,
     /// Whether or not the message is in a loading state
     response_message_loading: ?bool,
     /// Whether or not the response message was ephemeral
@@ -3186,7 +3187,7 @@ pub const InteractionResource = struct {
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-callback-interaction-callback-activity-instance-resource
 pub const ActivityInstanceResource = struct {
     /// Instance ID of the Activity if one was launched or joined.
-    id: []const u8,
+    id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/guild#guild-member-object
@@ -3223,13 +3224,13 @@ pub const InteractionData = struct {
     /// The type of component
     component_type: ?MessageComponentTypes,
     /// The custom id provided for this component.
-    custom_id: ?[]const u8,
+    custom_id: ?Snowflake,
     /// The components if its a Modal Submit interaction.
     components: ?[]MessageComponent,
     /// The values chosen by the user.
     values: []?[]const u8,
     /// The Id of the invoked command
-    id: []const u8,
+    id: Snowflake,
     /// The name of the invoked command
     name: []const u8,
     /// the type of the invoked command
@@ -3246,7 +3247,7 @@ pub const InteractionData = struct {
         roles: ?AutoArrayHashMap([]const u8, Role),
         /// The Ids and partial Channel objects
         channels: ?AutoArrayHashMap([]const u8, struct {
-            id: []const u8,
+            id: Snowflake,
             type: ChannelTypes,
             name: ?[]const u8,
             permissions: ?[]const u8,
@@ -3257,9 +3258,9 @@ pub const InteractionData = struct {
     /// The params + values from the user
     options: []?InteractionDataOption,
     /// The target id if this is a context menu command.
-    target_id: ?[]const u8,
+    target_id: ?Snowflake,
     /// the id of the guild the command is registered to
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
 };
 
 pub const InteractionDataOption = struct {
@@ -3297,7 +3298,7 @@ pub const ListArchivedThreads = struct {
 
 pub const ThreadListSync = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The parent channel ids whose threads are being synced. If omitted, then threads were synced for the entire guild. This array may contain channelIds that have no active threads as well, so you know to clear that data
     channel_ids: []?[]const u8,
     /// All active threads in the given channels that the current user can access
@@ -3332,13 +3333,13 @@ pub const AuditLog = struct {
 /// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object
 pub const AutoModerationRule = struct {
     /// The id of this rule
-    id: []const u8,
+    id: Snowflake,
     /// The guild id of the rule
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The name of the rule
     name: []const u8,
     /// The id of the user who created this rule.
-    creator_id: []const u8,
+    creator_id: Snowflake,
     /// Indicates in what event context a rule should be checked.
     event_type: AutoModerationEventTypes,
     /// The type of trigger for this rule
@@ -3465,7 +3466,7 @@ pub const AutoModerationActionType = enum(u4) {
 
 pub const AutoModerationActionMetadata = struct {
     /// The id of channel to which user content should be logged. Only in ActionType.SendAlertMessage
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// Additional explanation that will be shown to members whenever their message is blocked. Maximum of 150 characters. Only supported for AutoModerationActionType.BlockMessage
     custom_message: ?[]const u8,
     /// Timeout duration in seconds maximum of 2419200 seconds (4 weeks). Only supported for TriggerType.Keyword && Only in ActionType.Timeout
@@ -3475,11 +3476,11 @@ pub const AutoModerationActionMetadata = struct {
 /// https://discord.com/developers/docs/topics/gateway-events#auto-moderation-action-execution-auto-moderation-action-execution-event-fields
 pub const AutoModerationActionExecution = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The id of the rule that was executed
-    rule_id: []const u8,
+    rule_id: Snowflake,
     /// The id of the user which generated the content which triggered the rule
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The content from the user
     content: []const u8,
     /// Action which was executed
@@ -3487,11 +3488,11 @@ pub const AutoModerationActionExecution = struct {
     /// The trigger type of the rule that was executed.
     rule_trigger_type: AutoModerationTriggerTypes,
     /// The id of the channel in which user content was posted
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// The id of the message. Will not exist if message was blocked by automod or content was not part of any message
-    message_id: ?[]const u8,
+    message_id: ?Snowflake,
     /// The id of any system auto moderation messages posted as a result of this action
-    alert_system_message_id: ?[]const u8,
+    alert_system_message_id: ?Snowflake,
     /// The word or phrase that triggerred the rule.
     matched_keyword: ?[]const u8,
     /// The substring in content that triggered the rule
@@ -3501,14 +3502,14 @@ pub const AutoModerationActionExecution = struct {
 /// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-entry-structure
 pub const AuditLogEntry = struct {
     /// ID of the affected entity (webhook, user, role, etc.)
-    target_id: ?[]const u8,
+    target_id: ?Snowflake,
     /// Changes made to the `target_id`
     /// TODO: change this
     changes: []?AuditLogChange(noreturn),
     /// User or app that made the changes
-    user_id: ?[]const u8,
+    user_id: ?Snowflake,
     /// ID of the entry
-    id: []const u8,
+    id: Snowflake,
     /// Type of action that occurred
     action_type: AuditLogEvents,
     /// Additional info for certain event types
@@ -3528,7 +3529,7 @@ pub const OptionalAuditEntryInfo = struct {
     ///
     /// Event types: `APPLICATION_COMMAND_PERMISSION_UPDATE`,
     ///
-    application_id: ?[]const u8,
+    application_id: ?Snowflake,
     ///
     /// Name of the Auto Moderation rule that was triggered.
     ///
@@ -3546,7 +3547,7 @@ pub const OptionalAuditEntryInfo = struct {
     ///
     /// Event types: `MEMBER_MOVE`, `MESSAGE_PIN`, `MESSAGE_UNPIN`, `MESSAGE_DELETE`, `STAGE_INSTANCE_CREATE`, `STAGE_INSTANCE_UPDATE`, `STAGE_INSTANCE_DELETE`,
     ///
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     ///
     /// isize of entities that were targeted.
     ///
@@ -3564,7 +3565,7 @@ pub const OptionalAuditEntryInfo = struct {
     ///
     /// Event types: `CHANNEL_OVERWRITE_CREATE`, `CHANNEL_OVERWRITE_UPDATE`, `CHANNEL_OVERWRITE_DELETE`,
     ///
-    id: ?[]const u8,
+    id: ?Snowflake,
     ///
     /// isize of members removed by the prune.
     ///
@@ -3576,7 +3577,7 @@ pub const OptionalAuditEntryInfo = struct {
     ///
     /// Event types: `MESSAGE_PIN`, `MESSAGE_UNPIN`, `STAGE_INSTANCE_CREATE`, `STAGE_INSTANCE_UPDATE`, `STAGE_INSTANCE_DELETE`,
     ///
-    message_id: ?[]const u8,
+    message_id: ?Snowflake,
     ///
     /// Name of the role if type is "0" (not present if type is "1").
     ///
@@ -3599,13 +3600,13 @@ pub const OptionalAuditEntryInfo = struct {
 
 pub const ScheduledEvent = struct {
     /// the id of the scheduled event
-    id: []const u8,
+    id: Snowflake,
     /// the guild id which the scheduled event belongs to
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// the channel id in which the scheduled event will be hosted if specified
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
     /// the id of the user that created the scheduled event
-    creator_id: ?[]const u8,
+    creator_id: ?Snowflake,
     /// the name of the scheduled event
     name: []const u8,
     /// the description of the scheduled event
@@ -3621,7 +3622,7 @@ pub const ScheduledEvent = struct {
     /// the type of hosting entity associated with a scheduled event
     entity_type: ScheduledEventEntityType,
     /// any additional id of the hosting entity associated with event
-    entity_id: ?[]const u8,
+    entity_id: ?Snowflake,
     /// the entity metadata for the scheduled event
     entity_metadata: ?ScheduledEventEntityMetadata,
     /// the user that created the scheduled event
@@ -3866,11 +3867,11 @@ pub const ApplicationCommand = struct {
     ///
     handler: ?InteractionEntryPointCommandHandlerType,
     /// Unique ID of command
-    id: []const u8,
+    id: Snowflake,
     /// ID of the parent application
-    application_id: []const u8,
+    application_id: Snowflake,
     /// Guild id of the command, if not global
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
 };
 
 pub const CreateApplicationCommand = struct {
@@ -4044,11 +4045,11 @@ pub const ApplicationCommandOptionChoice = struct {
 /// https://discord.com/developers/docs/interactions/slash-commands#guildapplicationcommandpermissions
 pub const GuildApplicationCommandPermissions = struct {
     /// ID of the command or the application ID. When the `id` field is the application ID instead of a command ID, the permissions apply to all commands that do not contain explicit overwrites.
-    id: []const u8,
+    id: Snowflake,
     /// ID of the application the command belongs to
-    application_id: []const u8,
+    application_id: Snowflake,
     /// ID of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Permissions for the command in the guild, max of 100
     permissions: []ApplicationCommandPermissions,
 };
@@ -4056,7 +4057,7 @@ pub const GuildApplicationCommandPermissions = struct {
 /// https://discord.com/developers/docs/interactions/slash-commands#applicationcommandpermissions
 pub const ApplicationCommandPermissions = struct {
     /// ID of the role, user, or channel. It can also be a permission constant
-    id: []const u8,
+    id: Snowflake,
     /// ApplicationCommandPermissionTypes.Role, ApplicationCommandPermissionTypes.User, or ApplicationCommandPermissionTypes.Channel
     type: ApplicationCommandPermissionTypes,
     /// `true` to allow, `false`, to disallow
@@ -4065,16 +4066,16 @@ pub const ApplicationCommandPermissions = struct {
 
 /// https://discord.com/developers/docs/resources/guild#get-guild-widget-example-get-guild-widget
 pub const GuildWidget = struct {
-    id: []const u8,
+    id: Snowflake,
     name: []const u8,
     instant_invite: []const u8,
     channels: []struct {
-        id: []const u8,
+        id: Snowflake,
         name: []const u8,
         position: isize,
     },
     members: []struct {
-        id: []const u8,
+        id: Snowflake,
         username: []const u8,
         discriminator: []const u8,
         avatar: ?[]const u8,
@@ -4087,7 +4088,7 @@ pub const GuildWidget = struct {
 /// https://discord.com/developers/docs/resources/guild#guild-preview-object
 pub const GuildPreview = struct {
     /// Guild id
-    id: []const u8,
+    id: Snowflake,
     /// Guild name (2-100 characters)
     name: []const u8,
     /// Icon hash
@@ -4113,9 +4114,9 @@ pub const GuildPreview = struct {
 /// https://discord.com/developers/docs/resources/channel#followed-channel-object
 pub const FollowedChannel = struct {
     /// Source message id
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// Created target webhook id
-    webhook_id: []const u8,
+    webhook_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#payloads-gateway-payload-structure
@@ -4137,7 +4138,7 @@ pub fn GatewayPayload(comptime T: type) type {
 /// https://discord.com/developers/docs/topics/gateway#guild-members-chunk
 pub const GuildMembersChunk = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Set of guild members
     members: []MemberWithUser,
     /// The chunk index in the expected chunks for this response (0 <= chunk_index < chunk_count)
@@ -4155,9 +4156,9 @@ pub const GuildMembersChunk = struct {
 /// https://discord.com/developers/docs/topics/gateway#channel-pins-update
 pub const ChannelPinsUpdate = struct {
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The time at which the most recent pinned message was pinned
     last_pin_timestamp: ?[]const u8,
 };
@@ -4165,15 +4166,15 @@ pub const ChannelPinsUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway#guild-role-delete
 pub const GuildRoleDelete = struct {
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// id of the role
-    role_id: []const u8,
+    role_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#guild-ban-add
 pub const GuildBanAddRemove = struct {
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The banned user
     user: User,
 };
@@ -4181,17 +4182,17 @@ pub const GuildBanAddRemove = struct {
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove
 pub const MessageReactionRemove = struct {
     /// The id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the message
-    message_id: []const u8,
+    message_id: Snowflake,
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The emoji used to react
     emoji: Partial(Emoji),
     /// The id of the author of this message
-    message_author_id: ?[]const u8,
+    message_author_id: ?Snowflake,
     /// true if this is a super-reaction
     burst: bool,
     /// The type of reaction
@@ -4201,19 +4202,19 @@ pub const MessageReactionRemove = struct {
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-add
 pub const MessageReactionAdd = struct {
     /// The id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the message
-    message_id: []const u8,
+    message_id: Snowflake,
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The member who reacted if this happened in a guild
     member: ?MemberWithUser,
     /// The emoji used to react
     emoji: Partial(Emoji),
     /// The id of the author of this message
-    message_author_id: ?[]const u8,
+    message_author_id: ?Snowflake,
     /// true if this is a super-reaction
     burst: bool,
     /// Colors used for super-reaction animation in "#rrggbb" format
@@ -4227,7 +4228,7 @@ pub const VoiceServerUpdate = struct {
     /// Voice connection token
     token: []const u8,
     /// The guild this voice server update is for
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The voice server host
     endpoint: ?[]const u8,
 };
@@ -4235,11 +4236,11 @@ pub const VoiceServerUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway-events#voice-channel-effect-send-voice-channel-effect-send-event-fields
 pub const VoiceChannelEffectSend = struct {
     /// ID of the channel the effect was sent in
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// ID of the guild the effect was sent in
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// ID of the user who sent the effect
-    user_id: []const u8,
+    user_id: Snowflake,
     /// The emoji sent, for emoji reaction and soundboard effects
     emoji: ?Emoji,
     /// The type of emoji animation, for emoji reaction and soundboard effects
@@ -4266,13 +4267,13 @@ pub const VoiceChannelEffectAnimationType = enum(u4) {
 /// https://discord.com/developers/docs/topics/gateway#invite-create
 pub const InviteCreate = struct {
     /// The channel the invite is for
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The unique invite code
     code: []const u8,
     /// The time at which the invite was created
     created_at: []const u8,
     /// The guild of the invite
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The user that created the invite
     inviter: ?User,
     /// How long the invite is valid for (in seconds)
@@ -4319,14 +4320,14 @@ pub const Ready = struct {
         terms_of_service_url: ?[]const u8,
         privacy_policy_url: ?[]const u8,
         verify_key: ?[]const u8,
-        primary_sku_id: ?[]const u8,
+        primary_sku_id: ?Snowflake,
         slug: ?[]const u8,
         icon: ?[]const u8,
         bot_public: ?bool,
         bot_require_code_grant: ?bool,
         owner: ?Partial(User),
         team: ?Team,
-        guild_id: ?[]const u8,
+        guild_id: ?Snowflake,
         guild: ?Partial(Guild),
         cover_image: ?[]const u8,
         tags: ?[]?[]const u8,
@@ -4341,24 +4342,24 @@ pub const Ready = struct {
         interactions_endpoint_url: ?[]const u8,
 
         flags: ApplicationFlags,
-        id: []const u8,
+        id: Snowflake,
     },
 };
 
 /// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
 pub const UnavailableGuild = struct {
     unavailable: ?bool,
-    id: []const u8,
+    id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-delete-bulk
 pub const MessageDeleteBulk = struct {
     /// The ids of the messages
-    ids: [][]const u8,
+    ids: []Snowflake,
     /// The id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/template#template-object-template-structure
@@ -4372,7 +4373,7 @@ pub const Template = struct {
     /// isize of times this template has been used
     usage_count: isize,
     /// The Id of the user who created the template
-    creator_id: []const u8,
+    creator_id: Snowflake,
     /// The user who created the template
     creator: User,
     /// When this template was created
@@ -4380,7 +4381,7 @@ pub const Template = struct {
     /// When this template was last synced to the source guild
     updated_at: []const u8,
     /// The Id of the guild this template is based on
-    source_guild_id: []const u8,
+    source_guild_id: Snowflake,
     /// The guild snapshot this template contains
     serialized_source_guild: TemplateSerializedSourceGuild,
     is_dirty: ?bool,
@@ -4417,25 +4418,25 @@ pub const GuildMemberAdd = struct {
     /// The user object for this member
     user: User,
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-delete
 pub const MessageDelete = struct {
     /// The id of the message
-    id: []const u8,
+    id: Snowflake,
     /// The id of the channel
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The id of the guild
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#thread-members-update-thread-members-update-event-fields
 pub const ThreadMembersUpdate = struct {
     /// The id of the thread
-    id: []const u8,
+    id: Snowflake,
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The users who were added to the thread
     added_members: []?ThreadMember,
     /// The id of the users who were removed from the thread
@@ -4447,9 +4448,9 @@ pub const ThreadMembersUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway#thread-member-update
 pub const ThreadMemberUpdate = struct {
     /// The id of the thread
-    id: []const u8,
+    id: Snowflake,
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The timestamp when the bot joined this thread.
     joined_at: []const u8,
     /// The flags this user has for this thread. Not useful for bots.
@@ -4459,7 +4460,7 @@ pub const ThreadMemberUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway#guild-role-create
 pub const GuildRoleCreate = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The role created
     role: Role,
 };
@@ -4467,7 +4468,7 @@ pub const GuildRoleCreate = struct {
 /// https://discord.com/developers/docs/topics/gateway#guild-emojis-update
 pub const GuildEmojisUpdate = struct {
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Array of emojis
     emojis: []Emoji,
 };
@@ -4475,7 +4476,7 @@ pub const GuildEmojisUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway-events#guild-stickers-update
 pub const GuildStickersUpdate = struct {
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Array of sticker
     stickers: []Sticker,
 };
@@ -4483,7 +4484,7 @@ pub const GuildStickersUpdate = struct {
 /// https://discord.com/developers/docs/topics/gateway#guild-member-update
 pub const GuildMemberUpdate = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// User role ids
     roles: [][]const u8,
     /// The user
@@ -4516,18 +4517,18 @@ pub const MessageReactionRemoveAll = null;
 /// https://discord.com/developers/docs/topics/gateway#guild-role-update
 pub const GuildRoleUpdate = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The role updated
     role: Role,
 };
 
 pub const ScheduledEventUserAdd = struct {
     /// id of the guild scheduled event
-    guild_scheduled_event_id: []const u8,
+    guild_scheduled_event_id: Snowflake,
     /// id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove-emoji
@@ -4536,7 +4537,7 @@ pub const MessageReactionRemoveEmoji = null;
 /// https://discord.com/developers/docs/topics/gateway#guild-member-remove
 pub const GuildMemberRemove = struct {
     /// The id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// The user who was removed
     user: User,
 };
@@ -4551,19 +4552,19 @@ pub const Ban = struct {
 
 pub const ScheduledEventUserRemove = struct {
     /// id of the guild scheduled event
-    guild_scheduled_event_id: []const u8,
+    guild_scheduled_event_id: Snowflake,
     /// id of the user
-    user_id: []const u8,
+    user_id: Snowflake,
     /// id of the guild
-    guild_id: []const u8,
+    guild_id: Snowflake,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#invite-delete
 pub const InviteDelete = struct {
     /// The channel of the invite
-    channel_id: []const u8,
+    channel_id: Snowflake,
     /// The guild of the invite
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// The unique invite code
     code: []const u8,
 };
@@ -4571,7 +4572,7 @@ pub const InviteDelete = struct {
 /// https://discord.com/developers/docs/resources/voice#voice-region-object-voice-region-structure
 pub const VoiceRegion = struct {
     /// Unique Id for the region
-    id: []const u8,
+    id: Snowflake,
     /// Name of the region
     name: []const u8,
     /// true for a single server that is closest to the current user's client
@@ -4586,7 +4587,7 @@ pub const GuildWidgetSettings = struct {
     /// whether the widget is enabled
     enabled: bool,
     /// the widget channel id
-    channel_id: ?[]const u8,
+    channel_id: ?Snowflake,
 };
 
 pub const InstallParams = struct {
@@ -4598,20 +4599,20 @@ pub const InstallParams = struct {
 
 pub const ForumTag = struct {
     /// The id of the tag
-    id: []const u8,
+    id: Snowflake,
     /// The name of the tag (0-20 characters)
     name: []const u8,
     /// Whether this tag can only be added to or removed from threads by a member with the MANAGE_THREADS permission
     moderated: bool,
     /// The id of a guild's custom emoji At most one of emoji_id and emoji_name may be set.
-    emoji_id: []const u8,
+    emoji_id: Snowflake,
     /// The unicode character of the emoji
     emoji_name: ?[]const u8,
 };
 
 pub const DefaultReactionEmoji = struct {
     /// The id of a guild's custom emoji
-    emoji_id: []const u8,
+    emoji_id: Snowflake,
     /// The unicode character of the emoji
     emoji_name: ?[]const u8,
 };
@@ -4636,7 +4637,7 @@ pub const ModifyChannel = struct {
     /// Channel or category-specific permissions
     permission_overwrites: []?Overwrite,
     /// Id of the new parent category for a channel
-    parent_id: ?[]const u8,
+    parent_id: ?Snowflake,
     /// Voice region id for the voice channel, automatic when set to null
     rtc_region: ?[]const u8,
     /// The camera video quality mode of the voice channel
@@ -4652,13 +4653,13 @@ pub const ModifyChannel = struct {
     /// The set of tags that can be used in a GUILD_FORUM channel
     available_tags: []struct {
         /// The id of the tag
-        id: []const u8,
+        id: Snowflake,
         /// The name of the tag (0-20 characters)
         name: []const u8,
         /// Whether this tag can only be added to or removed from threads by a member with the MANAGE_THREADS permission
         moderated: bool,
         /// The id of a guild's custom emoji At most one of emoji_id and emoji_name may be set.
-        emoji_id: []const u8,
+        emoji_id: Snowflake,
         /// The unicode character of the emoji
         emoji_name: []const u8,
     },
@@ -4667,7 +4668,7 @@ pub const ModifyChannel = struct {
     /// the emoji to show in the add reaction button on a thread in a GUILD_FORUM channel
     default_reaction_emoji: ?struct {
         /// The id of a guild's custom emoji
-        emoji_id: []const u8,
+        emoji_id: Snowflake,
         /// The unicode character of the emoji
         emoji_name: ?[]const u8,
     },
@@ -4715,7 +4716,7 @@ pub const CreateGuildChannel = struct {
     /// The channel's permission overwrites
     permission_overwrites: []?Overwrite,
     /// Id of the parent category for a channel
-    parent_id: ?[]const u8,
+    parent_id: ?Snowflake,
     /// Whether the channel is nsfw
     nsfw: ?bool,
     /// Default duration (in minutes) that clients (not the API) use for newly created threads in this channel, to determine when to automatically archive the thread after the last activity
@@ -4723,20 +4724,20 @@ pub const CreateGuildChannel = struct {
     /// Emoji to show in the add reaction button on a thread in a forum channel
     default_reaction_emoji: ?struct {
         /// The id of a guild's custom emoji. Exactly one of `emojiId` and `emojiName` must be set.
-        emoji_id: ?[]const u8,
+        emoji_id: ?Snowflake,
         /// The unicode character of the emoji. Exactly one of `emojiId` and `emojiName` must be set.
         emoji_name: ?[]const u8,
     },
     /// Set of tags that can be used in a forum channel
     available_tags: ?[]struct {
         /// The id of the tag
-        id: []const u8,
+        id: Snowflake,
         /// The name of the tag (0-20 characters)
         name: []const u8,
         /// whether this tag can only be added to or removed from threads by a member with the MANAGE_THREADS permission
         moderated: bool,
         /// The id of a guild's custom emoji
-        emoji_id: []const u8,
+        emoji_id: Snowflake,
         /// The unicode character of the emoji
         emoji_name: ?[]const u8,
     },
@@ -4761,14 +4762,14 @@ pub const CreateMessage = struct {
     /// Include to make your message a reply
     message_reference: ?struct {
         /// id of the originating message
-        message_id: ?[]const u8,
+        message_id: ?Snowflake,
         ///
         /// id of the originating message's channel
         /// Note: `channel_id` is optional when creating a reply, but will always be present when receiving an event/response that includes this data model.,
         ///
-        channel_id: ?[]const u8,
+        channel_id: ?Snowflake,
         /// id of the originating message's guild
-        guild_id: ?[]const u8,
+        guild_id: ?Snowflake,
         /// When sending, whether to error if the referenced message doesn't exist instead of sending as a normal (non-reply) message, default true
         fail_if_not_exists: bool,
     },
@@ -4790,7 +4791,7 @@ pub const ModifyGuildWelcomeScreen = struct {
 
 pub const FollowAnnouncementChannel = struct {
     /// The id of the channel to send announcements to.
-    webhook_channel_id: []const u8,
+    webhook_channel_id: Snowflake,
 };
 
 pub const EditChannelPermissionOverridesOptions = struct {
@@ -4805,13 +4806,13 @@ pub const EditChannelPermissionOverridesOptions = struct {
 /// https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions
 pub const ModifyGuildChannelPositions = struct {
     /// Channel id
-    id: []const u8,
+    id: Snowflake,
     /// Sorting position of the channel
     position: ?isize,
     /// Syncs the permission overwrites with the new parent, if moving to a new category
     lock_positions: ?bool,
     /// The new parent ID for the channel that is moved
-    parent_id: ?[]const u8,
+    parent_id: ?Snowflake,
 };
 
 pub const CreateWebhook = struct {
@@ -4875,7 +4876,7 @@ pub const PrunedCount = struct {
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-guild-onboarding-structure
 pub const GuildOnboarding = struct {
     /// ID of the guild this onboarding is part of
-    guild_id: []const u8,
+    guild_id: Snowflake,
     /// Prompts shown during onboarding and in customize community
     prompts: []GuildOnboardingPrompt,
     /// Channel IDs that members get opted into automatically
@@ -4889,7 +4890,7 @@ pub const GuildOnboarding = struct {
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-prompt-structure
 pub const GuildOnboardingPrompt = struct {
     /// ID of the prompt
-    id: []const u8,
+    id: Snowflake,
     /// Type of prompt
     type: GuildOnboardingPromptType,
     /// Options available within the prompt
@@ -4907,7 +4908,7 @@ pub const GuildOnboardingPrompt = struct {
 /// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
 pub const GuildOnboardingPromptOption = struct {
     /// ID of the prompt option
-    id: []const u8,
+    id: Snowflake,
     /// IDs for channels a member is added to when the option is selected
     channel_ids: [][]const u8,
     /// IDs for roles assigned to a member when the option is selected
@@ -4925,7 +4926,7 @@ pub const GuildOnboardingPromptOption = struct {
     /// @remarks
     /// When creating or updating a prompt option, the `emoji_id`, `emoji_name`, and `emoji_animated` fields must be used instead of the emoji object.
     ///
-    emoji_id: ?[]const u8,
+    emoji_id: ?Snowflake,
     ///
     /// Emoji name of the option
     ///
@@ -4976,15 +4977,15 @@ pub const TeamMemberRole = enum {
 /// https://discord.com/developers/docs/monetization/entitlements#entitlement-object-entitlement-structure
 pub const Entitlement = struct {
     /// ID of the entitlement
-    id: []const u8,
+    id: Snowflake,
     /// ID of the SKU
-    sku_id: []const u8,
+    sku_id: Snowflake,
     /// ID of the user that is granted access to the entitlement's sku
-    user_id: ?[]const u8,
+    user_id: ?Snowflake,
     /// ID of the guild that is granted access to the entitlement's sku
-    guild_id: ?[]const u8,
+    guild_id: ?Snowflake,
     /// ID of the parent application
-    application_id: []const u8,
+    application_id: Snowflake,
     /// Type of entitlement
     type: EntitlementType,
     /// Entitlement was deleted
@@ -5020,11 +5021,11 @@ pub const EntitlementType = enum(u4) {
 /// https://discord.com/developers/docs/monetization/skus#sku-object-sku-structure
 pub const Sku = struct {
     /// ID of SKU
-    id: []const u8,
+    id: Snowflake,
     /// Type of SKU
     type: SkuType,
     /// ID of the parent application
-    application_id: []const u8,
+    application_id: Snowflake,
     /// Customer-facing name of your premium offering
     name: []const u8,
     /// System-generated URL slug based on the SKU's name

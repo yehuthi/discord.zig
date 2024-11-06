@@ -2,12 +2,13 @@ const zmpl = @import("zmpl");
 const Discord = @import("types.zig");
 const std = @import("std");
 const mem = std.mem;
+const Snowflake = @import("shared.zig").Snowflake;
 
 pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.User {
     const avatar_decoration_data_obj = obj.getT(.object, "avatar_decoration_data");
     const user = Discord.User{
         .clan = null,
-        .id = obj.getT(.string, "id").?,
+        .id = try Snowflake.fromRaw(obj.getT(.string, "id").?),
         .bot = obj.getT(.boolean, "bot") orelse false,
         .username = obj.getT(.string, "username").?,
         .accent_color = if (obj.getT(.integer, "accent_color")) |ac| @as(isize, @intCast(ac)) else null,
@@ -27,7 +28,7 @@ pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.User {
         .discriminator = obj.getT(.string, "discriminator").?,
         .avatar_decoration_data = if (avatar_decoration_data_obj) |add| Discord.AvatarDecorationData{
             .asset = add.getT(.string, "asset").?,
-            .sku_id = add.getT(.string, "sku_id").?,
+            .sku_id = try Snowflake.fromRaw(add.getT(.string, "sku_id").?),
         } else null,
     };
 
@@ -51,7 +52,7 @@ pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Member {
         .flags = @as(isize, @intCast(obj.getT(.integer, "flags").?)),
         .avatar_decoration_data = if (avatar_decoration_data_member_obj) |addm| Discord.AvatarDecorationData{
             .asset = addm.getT(.string, "asset").?,
-            .sku_id = addm.getT(.string, "sku_id").?,
+            .sku_id = try Snowflake.fromRaw(addm.getT(.string, "sku_id").?),
         } else null,
     };
     return member;
@@ -90,17 +91,17 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
     // parse message
     const message = Discord.Message{
         // the id
-        .id = obj.getT(.string, "id").?,
+        .id = try Snowflake.fromRaw(obj.getT(.string, "id").?),
         .tts = obj.getT(.boolean, "tts").?,
         .mention_everyone = obj.getT(.boolean, "mention_everyone").?,
         .pinned = obj.getT(.boolean, "pinned").?,
         .type = @as(Discord.MessageTypes, @enumFromInt(obj.getT(.integer, "type").?)),
-        .channel_id = obj.getT(.string, "channel_id").?,
+        .channel_id = try Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
         .author = author,
         .member = member,
         .content = obj.getT(.string, "content"),
         .timestamp = obj.getT(.string, "timestamp").?,
-        .guild_id = obj.getT(.string, "guild_id"),
+        .guild_id = try Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
         .attachments = &[0]Discord.Attachment{},
         .edited_timestamp = null,
         .mentions = try mentions.toOwnedSlice(),
@@ -109,10 +110,10 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
         .embeds = &[0]Discord.Embed{},
         .reactions = &[0]?Discord.Reaction{},
         .nonce = .{ .string = obj.getT(.string, "nonce").? },
-        .webhook_id = obj.getT(.string, "webhook_id"),
+        .webhook_id = try Snowflake.fromMaybe(obj.getT(.string, "webhook_id")),
         .activity = null,
         .application = null,
-        .application_id = obj.getT(.string, "application_id"),
+        .application_id = try Snowflake.fromMaybe(obj.getT(.string, "application_id")),
         .message_reference = null,
         .flags = if (obj.getT(.integer, "flags")) |fs| @as(Discord.MessageFlags, @bitCast(@as(u15, @intCast(fs)))) else null,
         .stickers = &[0]?Discord.Sticker{},

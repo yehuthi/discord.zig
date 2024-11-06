@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const IdentifyProperties = struct {
     ///
     /// Operating system the shard runs on.
@@ -46,4 +48,36 @@ pub const GatewayBotInfo = struct {
     /// See https://discord.com/developers/docs/topics/gateway#session-start-limit-object
     ///
     session_start_limit: ?GatewaySessionStartLimit,
+};
+
+pub const Snowflake = struct {
+    id: u64,
+
+    pub fn fromMaybe(raw: ?[]const u8) !?Snowflake {
+        if (raw) |id| {
+            return .{
+                .id = try std.fmt.parseInt(u64, id, 10),
+            };
+        } else return null;
+    }
+
+    pub fn fromRaw(raw: []const u8) !Snowflake {
+        return .{
+            .id = try std.fmt.parseInt(u64, raw, 10),
+        };
+    }
+
+    pub fn fromMany(many: [][]const u8) ![]Snowflake {
+        var array = try std.BoundedArray(Snowflake, 64).init(many.len);
+
+        for (many) |id| {
+            try array.append(try Snowflake.fromRaw(id));
+        }
+
+        return array.slice();
+    }
+
+    pub fn value(self: *Snowflake) u64 {
+        return self.value;
+    }
 };

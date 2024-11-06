@@ -541,7 +541,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 .redirect_uris = null,
                 .interactions_endpoint_url = null,
                 .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(application.getT(.integer, "flags").?)))),
-                .id = application.getT(.string, "id").?,
+                .id = try Shared.Snowflake.fromRaw(application.getT(.string, "id").?),
             },
         };
 
@@ -562,9 +562,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
 
         const obj = attempt.getT(.object, "d").?;
         const data = Discord.MessageDelete{
-            .id = obj.getT(.string, "id").?,
-            .channel_id = obj.getT(.string, "channel_id").?,
-            .guild_id = obj.getT(.string, "guild_id"),
+            .id = try Shared.Snowflake.fromRaw(obj.getT(.string, "id").?),
+            .channel_id = try Shared.Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
+            .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
         };
 
         if (self.handler.message_delete) |event| event(data);
@@ -582,9 +582,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         }
 
         const data = Discord.MessageDeleteBulk{
-            .ids = ids.items,
-            .channel_id = obj.getT(.string, "channel_id").?,
-            .guild_id = obj.getT(.string, "guild_id"),
+            .ids = try Shared.Snowflake.fromMany(try ids.toOwnedSlice()),
+            .channel_id = try Shared.Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
+            .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
         };
 
         if (self.handler.message_delete_bulk) |event| event(data);
