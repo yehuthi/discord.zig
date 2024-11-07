@@ -1,4 +1,4 @@
-lib/zlib
+lib/
 zig-out
 .zig-cache
 .env
