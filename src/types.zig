@@ -301,6 +301,7 @@ pub const ApplicationFlags = packed struct {
     _pad2: u4 = 0,
     /// Indicates if an app has registered global application commands
     ApplicationCommandBadge: bool = false,
+    _pad3: u7,
 };
 
 /// https://discord.com/developers/docs/interactions/message-components#component-types

@@ -551,7 +551,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 .bot = null,
                 .redirect_uris = null,
                 .interactions_endpoint_url = null,
-                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u25, @intCast(app.getT(.integer, "flags").?)))),
+                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u32, @intCast(app.getT(.integer, "flags").?)))),
                 .id = try Shared.Snowflake.fromRaw(app.getT(.string, "id").?),
             } else null,
         };
