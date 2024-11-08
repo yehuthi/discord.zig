@@ -21,19 +21,14 @@ fn message_create(session: *Shard, message: Discord.Message) void {
         defer session.allocator.free(json);
         const path = std.fmt.allocPrint(session.allocator, "/channels/{d}/messages", .{message.channel_id.value()}) catch unreachable;
 
-        _ = req.makeRequest(
-            .POST,
-            path,
-            json,
-        ) catch unreachable;
+        _ = req.makeRequest(.POST, path, json) catch unreachable;
     };
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    var tsa = std.heap.ThreadSafeAllocator{ .child_allocator = std.heap.c_allocator };
 
-    var handler = try Shard.login(allocator, .{
+    var handler = try Shard.login(tsa.allocator(), .{
         .token = std.posix.getenv("TOKEN") orelse unreachable,
         .intents = Intents.fromRaw(37379),
         .run = Internal.GatewayDispatchEvent(*Shard){
@@ -43,7 +38,4 @@ pub fn main() !void {
         .log = .yes,
     });
     errdefer handler.deinit();
-
-    const event_listener = try std.Thread.spawn(.{}, Shard.readMessage, .{ &handler, null });
-    event_listener.join();
 }

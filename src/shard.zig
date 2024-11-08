@@ -197,7 +197,7 @@ pub fn login(allocator: mem.Allocator, args: struct {
     defer parsed.deinit();
     const url = parsed.value.url["wss://".len..];
 
-    return .{
+    var self: Self = .{
         .allocator = allocator,
         .token = args.token,
         .intents = args.intents,
@@ -210,6 +210,11 @@ pub fn login(allocator: mem.Allocator, args: struct {
         .packets = std.ArrayList(u8).init(allocator),
         .inflator = try zlib.Decompressor.init(allocator, .{ .header = .zlib_or_gzip }),
     };
+
+    const event_listener = try std.Thread.spawn(.{}, Self.readMessage, .{ &self, null });
+    event_listener.join();
+
+    return self;
 }
 
 inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
@@ -301,7 +306,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
 
                 var prng = std.Random.DefaultPrng.init(0);
                 const jitter = std.Random.float(prng.random(), f64);
-
+                self.heart.lastBeat = std.time.milliTimestamp();
                 const heartbeat_writer = try std.Thread.spawn(.{}, Self.heartbeat, .{ self, jitter });
                 heartbeat_writer.detach();
             },
@@ -371,7 +376,7 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
         try self.send(.{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
         self.ws_mutex.unlock();
 
-        if (last > (5100 * self.heart.heartbeatInterval)) {
+        if ((std.time.milliTimestamp() - last) > (5000 * self.heart.heartbeatInterval)) {
             self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection") catch unreachable;
             @panic("zombied conn\n");
         }
