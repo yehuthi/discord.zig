@@ -2703,8 +2703,8 @@ pub const Message = struct {
     /// Reactions to the message
     reactions: []?Reaction,
     /// Used for validating a message was sent
-    nonce: union(enum) {
-        int: ?isize,
+    nonce: ?union(enum) {
+        int: isize,
         string: []const u8,
     },
     /// Whether this message is pinned
@@ -4750,7 +4750,7 @@ pub const CreateMessage = struct {
     /// The message contents (up to 2000 characters)
     content: ?[]const u8,
     /// Can be used to verify a message was sent (up to 25 characters). Value will appear in the Message Create event.
-    nonce: union(enum) {
+    nonce: ?union(enum) {
         string: ?[]const u8,
         integer: isize,
     },

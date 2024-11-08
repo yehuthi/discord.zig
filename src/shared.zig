@@ -89,7 +89,7 @@ pub const Snowflake = struct {
         return array.slice();
     }
 
-    pub fn value(self: *Snowflake) u64 {
-        return self.value;
+    pub fn value(self: Snowflake) u64 {
+        return self.id;
     }
 };

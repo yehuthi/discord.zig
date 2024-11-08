@@ -70,8 +70,10 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
         try mentions.append(try parseUser(allocator, &m.object));
     }
 
+    std.debug.print("parsing mentions done\n", .{});
+
     // parse member
-    const member = try parseMember(allocator, obj.getT(.object, "member").?);
+    const member = if (obj.getT(.object, "member")) |m| try parseMember(allocator, m) else null;
 
     // parse message
     const author = try parseUser(allocator, obj.getT(.object, "author").?);
@@ -79,13 +81,10 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
     // the referenced_message if any
     const refmp = try allocator.create(Discord.Message);
 
-    var invalid_ptr = false;
-
     if (obj.getT(.object, "referenced_message")) |m| {
         refmp.* = try parseMessage(allocator, m);
     } else {
         allocator.destroy(refmp);
-        invalid_ptr = true;
     }
 
     // parse message
@@ -109,7 +108,12 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
         .mention_channels = &[0]?Discord.ChannelMention{},
         .embeds = &[0]Discord.Embed{},
         .reactions = &[0]?Discord.Reaction{},
-        .nonce = .{ .string = obj.getT(.string, "nonce").? },
+        .nonce = if (obj.get("nonce")) |nonce| switch (nonce.*) {
+            .integer => |n| .{ .int = @as(isize, @intCast(n.value)) },
+            .string => |n| .{ .string = n.value },
+            .Null => null,
+            else => unreachable,
+        } else null,
         .webhook_id = try Snowflake.fromMaybe(obj.getT(.string, "webhook_id")),
         .activity = null,
         .application = null,
@@ -126,7 +130,7 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
         .position = if (obj.getT(.integer, "position")) |p| @as(isize, @intCast(p)) else null,
         .poll = null,
         .call = null,
-        .referenced_message = if (invalid_ptr) null else refmp,
+        .referenced_message = refmp,
     };
     return message;
 }

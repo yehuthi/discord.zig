@@ -1,7 +1,41 @@
-const ConnectQueue = @import("internal.zig").ConnectQueue;
 const Intents = @import("types.zig").Intents;
 const GatewayBotInfo = @import("shared.zig").GatewayBotInfo;
-const IdentifyProperties = @import("shared.zig").IdentifyProperties;
+const Shared = @import("shared.zig");
+const IdentifyProperties = Shared.IdentifyProperties;
+const Internal = @import("internal.zig");
+const ConnectQueue = Internal.ConnectQueue;
+const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
+const Shard = @import("shard.zig");
+const std = @import("std");
+const mem = std.mem;
+const debug = Internal.debug;
+
+const Self = @This();
+
+token: []const u8,
+intents: Intents,
+allocator: mem.Allocator,
+connectQueue: ConnectQueue,
+shards: std.AutoArrayHashMap(usize, Shard),
+run: GatewayDispatchEvent(*Self),
+
+/// spawn buckets in order
+/// https://discord.com/developers/docs/events/gateway#sharding-max-concurrency
+fn spawnBuckers(self: *Self) !void {
+    _ = self;
+}
+
+/// creates a shard and stores it
+fn create(self: *Self, shard_id: usize) !Shard {
+    const shard = try self.shards.getOrPutValue(shard_id, try Shard.login(self.allocator, .{
+        .token = self.token,
+        .intents = self.intents,
+        .run = self.run,
+        .log = self.log,
+    }));
+
+    return shard;
+}
 
 pub const ShardDetails = struct {
     /// Bot token which is used to connect to Discord */

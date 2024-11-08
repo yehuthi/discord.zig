@@ -60,7 +60,7 @@ pub fn build(b: *std.Build) void {
     marin.root_module.addImport("zmpl", zmpl.module("zmpl"));
     marin.root_module.addImport("deque", deque.module("zig-deque"));
 
-    b.installArtifact(marin);
+    //b.installArtifact(marin);
 
     // test
     const run_cmd = b.addRunArtifact(marin);
