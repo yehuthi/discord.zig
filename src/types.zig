@@ -102,6 +102,14 @@ pub const PremiumTypes = enum {
 
 /// https://discord.com/developers/docs/resources/user#user-object-user-flags
 pub const UserFlags = packed struct {
+    pub fn toRaw(self: UserFlags) u26 {
+        return @as(u26, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u26) UserFlags {
+        return @as(UserFlags, @bitCast(raw));
+    }
+
     DiscordEmployee: bool = false,
     PartneredServerOwner: bool = false,
     HypeSquadEventsMember: bool = false,
@@ -124,6 +132,14 @@ pub const UserFlags = packed struct {
 };
 
 pub const MemberFlags = packed struct {
+    pub fn toRaw(self: MemberFlags) u10 {
+        return @as(u10, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u10) MemberFlags {
+        return @as(MemberFlags, @bitCast(raw));
+    }
+
     ///
     /// Member has left and rejoined the guild
     ///
@@ -187,6 +203,14 @@ pub const MemberFlags = packed struct {
 
 /// https://discord.com/developers/docs/resources/channel#channels-resource
 pub const ChannelFlags = packed struct {
+    pub fn toRaw(self: ChannelFlags) u18 {
+        return @as(u18, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u18) ChannelFlags {
+        return @as(ChannelFlags, @bitCast(raw));
+    }
+
     None: bool = false,
     /// this thread is pinned to the top of its parent `GUILD_FORUM` channel
     Pinned: bool = false,
@@ -200,12 +224,28 @@ pub const ChannelFlags = packed struct {
 
 /// https://discord.com/developers/docs/topics/permissions#role-object-role-flags
 pub const RoleFlags = packed struct {
+    pub fn toRaw(self: RoleFlags) u2 {
+        return @as(u2, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u2) RoleFlags {
+        return @as(RoleFlags, @bitCast(raw));
+    }
+
     None: bool = false,
     /// Role can be selected by members in an onboarding prompt
     InPrompt: bool = false,
 };
 
 pub const AttachmentFlags = packed struct {
+    pub fn toRaw(self: AttachmentFlags) u3 {
+        return @as(u3, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u3) AttachmentFlags {
+        return @as(AttachmentFlags, @bitCast(raw));
+    }
+
     None: bool = false,
     _pad: u1 = 0,
     /// This attachment has been edited using the remix feature on mobile
@@ -214,6 +254,14 @@ pub const AttachmentFlags = packed struct {
 
 /// https://discord.com/developers/docs/monetization/skus#sku-object-sku-flags
 pub const SkuFlags = packed struct {
+    pub fn toRaw(self: SkuFlags) u10 {
+        return @as(u10, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u10) SkuFlags {
+        return @as(SkuFlags, @bitCast(raw));
+    }
+
     _pad: u2 = 0,
     /// SKU is available for purchase
     Available: bool = false,
@@ -226,6 +274,14 @@ pub const SkuFlags = packed struct {
 
 /// https://discord.com/developers/docs/resources/channel#message-object-message-flags
 pub const MessageFlags = packed struct {
+    pub fn toRaw(self: MessageFlags) u15 {
+        return @as(u15, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u15) MessageFlags {
+        return @as(MessageFlags, @bitCast(raw));
+    }
+
     /// This message has been published to subscribed channels (via Channel Following)
     Crossposted: bool = false,
     /// This message originated from a message in another channel (via Channel Following)
@@ -278,6 +334,14 @@ pub const TeamMembershipStates = enum(u4) {
 
 /// https://discord.com/developers/docs/topics/oauth2#application-application-flags
 pub const ApplicationFlags = packed struct {
+    pub fn toRaw(self: ApplicationFlags) u32 {
+        return @as(u32, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u32) ApplicationFlags {
+        return @as(ApplicationFlags, @bitCast(raw));
+    }
+
     _pad: u5 = 0,
     /// Indicates if an app uses the Auto Moderation API.
     ApplicationAutoModerationRuleCreateBadge: bool = false,
@@ -476,6 +540,14 @@ pub const MfaLevels = enum {
 
 /// https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
 pub const SystemChannelFlags = packed struct {
+    pub fn toRaw(self: SystemChannelFlags) u4 {
+        return @as(u4, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u4) SystemChannelFlags {
+        return @as(SystemChannelFlags, @bitCast(raw));
+    }
+
     /// Suppress member join notifications
     SuppressJoinNotifications: bool = false,
     /// Suppress server boost notifications
@@ -508,6 +580,14 @@ pub const GuildNsfwLevel = enum {
 
 /// https://discord.com/developers/docs/resources/channel#channel-object-channel-types
 pub const ChannelTypes = packed struct {
+    pub fn toRaw(self: ChannelTypes) u17 {
+        return @as(u17, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u17) ChannelTypes {
+        return @as(ChannelTypes, @bitCast(raw));
+    }
+
     /// A text channel within a server
     GuildText: bool = false,
     /// A direct message between users
@@ -821,6 +901,14 @@ pub const ApplicationCommandPermissionTypes = enum(u4) {
 
 /// https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
 pub const BitwisePermissionFlags = packed struct {
+    pub fn toRaw(self: BitwisePermissionFlags) u49 {
+        return @as(u49, @bitCast(self));
+    }
+
+    pub fn fromRaw(raw: u49) BitwisePermissionFlags {
+        return @as(BitwisePermissionFlags, @bitCast(raw));
+    }
+
     /// Allows creation of instant invites
     CREATE_INSTANT_INVITE: bool = false,
     /// Allows kicking members
