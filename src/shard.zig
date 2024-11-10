@@ -1,6 +1,5 @@
 const ws = @import("ws");
 const builtin = @import("builtin");
-const HttpClient = @import("tls12").HttpClient;
 
 const std = @import("std");
 const net = std.net;
@@ -27,66 +26,19 @@ const IdentifyProperties = Shared.IdentifyProperties;
 const GatewayInfo = Shared.GatewayInfo;
 const GatewayBotInfo = Shared.GatewayBotInfo;
 const GatewaySessionStartLimit = Shared.GatewaySessionStartLimit;
+const ShardDetails = Shared.ShardDetails;
 
 const Internal = @import("internal.zig");
 const Log = Internal.Log;
 const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
+const Bucket = Internal.Bucket;
+const default_identify_properties = Internal.default_identify_properties;
+
+const FetchRequest = @import("http.zig").FetchReq;
 
 const ShardSocketCloseCodes = enum(u16) {
     Shutdown = 3000,
     ZombiedConnection = 3010,
-};
-
-const BASE_URL = "https://discord.com/api/v10";
-
-pub const FetchReq = struct {
-    allocator: mem.Allocator,
-    token: []const u8,
-    client: HttpClient,
-    body: std.ArrayList(u8),
-
-    pub fn init(allocator: mem.Allocator, token: []const u8) FetchReq {
-        const client = HttpClient{ .allocator = allocator };
-        return FetchReq{
-            .allocator = allocator,
-            .client = client,
-            .body = std.ArrayList(u8).init(allocator),
-            .token = token,
-        };
-    }
-
-    pub fn deinit(self: *FetchReq) void {
-        self.client.deinit();
-        self.body.deinit();
-    }
-
-    pub fn makeRequest(self: *FetchReq, method: http.Method, path: []const u8, to_post: ?[]const u8) !HttpClient.FetchResult {
-        var fetch_options = HttpClient.FetchOptions{
-            .location = HttpClient.FetchOptions.Location{
-                .url = try std.fmt.allocPrint(self.allocator, "{s}{s}", .{ BASE_URL, path }),
-            },
-            .extra_headers = &[_]http.Header{
-                http.Header{ .name = "Accept", .value = "application/json" },
-                http.Header{ .name = "Content-Type", .value = "application/json" },
-                http.Header{ .name = "Authorization", .value = self.token },
-            },
-            .method = method,
-            .response_storage = .{ .dynamic = &self.body },
-        };
-
-        if (to_post != null) {
-            fetch_options.payload = to_post;
-        }
-
-        const res = try self.client.fetch(fetch_options);
-        return res;
-    }
-};
-
-const _default_properties = IdentifyProperties{
-    .os = @tagName(builtin.os.tag),
-    .browser = "discord.zig",
-    .device = "discord.zig",
 };
 
 const Heart = struct {
@@ -96,16 +48,27 @@ const Heart = struct {
     lastBeat: i64,
 };
 
+const RatelimitOptions = struct {
+    max_requests_per_ratelimit_tick: ?usize = 120,
+    ratelimit_reset_interval: u64 = 60000,
+};
+
+pub const ShardOptions = struct {
+    ratelimit_options: RatelimitOptions = .{},
+};
+
+id: usize,
+
 client: ws.Client,
-token: []const u8,
-intents: Intents,
+details: ShardDetails,
 
 //heart: Heart =
 allocator: mem.Allocator,
 resume_gateway_url: ?[]const u8 = null,
 info: GatewayBotInfo,
+bucket: Bucket,
+ratelimit_options: RatelimitOptions,
 
-properties: IdentifyProperties = _default_properties,
 session_id: ?[]const u8,
 sequence: std.atomic.Value(isize) = std.atomic.Value(isize).init(0),
 heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
@@ -135,86 +98,87 @@ pub fn resumable(self: *Self) bool {
 
 pub fn resume_(self: *Self) !void {
     const data = .{ .op = @intFromEnum(Opcode.Resume), .d = .{
-        .token = self.token,
+        .token = self.details.token,
         .session_id = self.session_id,
         .seq = self.sequence.load(.monotonic),
     } };
 
-    try self.send(data);
+    try self.send(false, data);
 }
 
 inline fn gatewayUrl(self: ?*Self) []const u8 {
     return if (self) |s| (s.resume_gateway_url orelse s.info.url)["wss://".len..] else "gateway.discord.gg";
 }
 
-// identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
+/// identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
 fn identify(self: *Self, properties: ?IdentifyProperties) !void {
-    self.logif("intents: {d}", .{self.intents.toRaw()});
+    self.logif("intents: {d}", .{self.details.intents.toRaw()});
 
-    if (self.intents.toRaw() != 0) {
+    if (self.details.intents.toRaw() != 0) {
         const data = .{
             .op = @intFromEnum(Opcode.Identify),
             .d = .{
-                .intents = self.intents.toRaw(),
-                .properties = properties orelse Self._default_properties,
-                .token = self.token,
+                .intents = self.details.intents.toRaw(),
+                .properties = properties orelse default_identify_properties,
+                .token = self.details.token,
             },
         };
-        try self.send(data);
+        try self.send(false, data);
     } else {
         const data = .{
             .op = @intFromEnum(Opcode.Identify),
             .d = .{
                 .capabilities = 30717,
-                .properties = properties orelse Self._default_properties,
-                .token = self.token,
+                .properties = properties orelse default_identify_properties,
+                .token = self.details.token,
             },
         };
-        try self.send(data);
+        try self.send(false, data);
     }
 }
 
-// asks /gateway/bot initializes both the ws client and the http client
-pub fn login(allocator: mem.Allocator, args: struct {
+pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
     token: []const u8,
     intents: Intents,
+    options: ShardOptions,
     run: GatewayDispatchEvent(*Self),
     log: Log,
-}) !Self {
-    var req = FetchReq.init(allocator, args.token);
-    defer req.deinit();
-
-    const res = try req.makeRequest(.GET, "/gateway/bot", null);
-    const body = try req.body.toOwnedSlice();
-    defer allocator.free(body);
-
-    // check status idk
-    if (res.status != http.Status.ok) {
-        @panic("we are cooked\n");
-    }
-
-    const parsed = try json.parseFromSlice(GatewayBotInfo, allocator, body, .{});
-    defer parsed.deinit();
-    const url = parsed.value.url["wss://".len..];
-
-    var self: Self = .{
+}) zlib.Error!Self {
+    return Self{
+        .info = .{ .url = "wss://gateway.discord.gg", .shards = 1, .session_start_limit = null },
+        .id = shard_id,
         .allocator = allocator,
-        .token = args.token,
-        .intents = args.intents,
+        .details = ShardDetails{
+            .token = settings.token,
+            .intents = settings.intents,
+        },
+        .client = undefined,
         // maybe there is a better way to do this
-        .client = try Self._connect_ws(allocator, url),
         .session_id = undefined,
-        .info = parsed.value,
-        .handler = args.run,
-        .log = args.log,
+        .handler = settings.run,
+        .log = settings.log,
         .packets = std.ArrayList(u8).init(allocator),
         .inflator = try zlib.Decompressor.init(allocator, .{ .header = .zlib_or_gzip }),
+        .bucket = Bucket.init(
+            allocator,
+            Self.calculateSafeRequests(settings.options.ratelimit_options),
+            settings.options.ratelimit_options.ratelimit_reset_interval,
+            Self.calculateSafeRequests(settings.options.ratelimit_options),
+        ),
+        .ratelimit_options = settings.options.ratelimit_options,
     };
+}
 
-    const event_listener = try std.Thread.spawn(.{}, Self.readMessage, .{ &self, null });
-    event_listener.join();
+inline fn calculateSafeRequests(options: RatelimitOptions) usize {
+    const safe_requests =
+        @as(f64, @floatFromInt(options.max_requests_per_ratelimit_tick orelse 120)) -
+        @ceil(@as(f64, @floatFromInt(options.ratelimit_reset_interval)) / 30000.0) * 2;
 
-    return self;
+    if (safe_requests < 0) {
+        return 0;
+    }
+
+    return @intFromFloat(safe_requests);
 }
 
 inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
@@ -241,8 +205,8 @@ pub fn deinit(self: *Self) void {
     self.logif("killing the whole bot", .{});
 }
 
-// listens for messages
-pub fn readMessage(self: *Self, _: anytype) !void {
+/// listens for messages
+fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
     while (true) {
@@ -301,7 +265,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                     try self.resume_();
                     return;
                 } else {
-                    try self.identify(self.properties);
+                    try self.identify(self.details.properties);
                 }
 
                 var prng = std.Random.DefaultPrng.init(0);
@@ -321,7 +285,7 @@ pub fn readMessage(self: *Self, _: anytype) !void {
                 self.logif("sending requested heartbeat", .{});
                 self.ws_mutex.lock();
                 defer self.ws_mutex.unlock();
-                try self.send(.{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence.load(.monotonic) });
+                try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence.load(.monotonic) });
             },
             Opcode.Reconnect => {
                 self.logif("reconnecting", .{});
@@ -373,7 +337,7 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
         const seq = self.sequence.load(.monotonic);
         self.logif("sending unrequested heartbeat", .{});
         self.ws_mutex.lock();
-        try self.send(.{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
+        try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
         self.ws_mutex.unlock();
 
         if ((std.time.milliTimestamp() - last) > (5000 * self.heart.heartbeatInterval)) {
@@ -390,16 +354,25 @@ pub inline fn reconnect(self: *Self) !void {
     try self.connect();
 }
 
-pub fn connect(self: *Self) !void {
+pub const ConnectError =
+    std.net.TcpConnectToAddressError || std.crypto.tls.Client.InitError(std.net.Stream) || std.net.Stream.ReadError || std.net.IPParseError || std.crypto.Certificate.Bundle.RescanError || std.net.TcpConnectToHostError || std.fmt.BufPrintError || mem.Allocator.Error;
+
+pub fn connect(self: *Self) ConnectError!void {
     //std.time.sleep(std.time.ms_per_s * 5);
     self.client = try Self._connect_ws(self.allocator, self.gatewayUrl());
+    //const event_listener = try std.Thread.spawn(.{}, Self.readMessage, .{ &self, null });
+    //event_listener.join();
+
+    self.readMessage(null) catch unreachable;
 }
 
 pub fn disconnect(self: *Self) !void {
     try self.close(ShardSocketCloseCodes.Shutdown, "Shard down request");
 }
 
-pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) !void {
+pub const CloseError = mem.Allocator.Error || error{ReasonTooLong};
+
+pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) CloseError!void {
     self.logif("cooked closing ws conn...\n", .{});
     // Implement reconnection logic here
     try self.client.close(.{
@@ -408,7 +381,9 @@ pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) !void
     });
 }
 
-pub fn send(self: *Self, data: anytype) !void {
+pub const SendError = net.Stream.WriteError || std.ArrayList(u8).Writer.Error;
+
+pub fn send(self: *Self, _: bool, data: anytype) SendError!void {
     var buf: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buf);
     var string = std.ArrayList(u8).init(fba.allocator());
@@ -546,6 +521,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
     }
 }
 
+/// highly experimental, do not use
 pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []const u8, password: []const u8, run: GatewayDispatchEvent(*Self), log: Log }) !Self {
     const AUTH_LOGIN = "https://discord.com/api/v9/auth/login";
     const WS_CONNECT = "gateway.discord.gg";
@@ -555,8 +531,8 @@ pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []cons
 
     const AuthLoginResponse = struct { user_id: []const u8, token: []const u8, user_settings: struct { locale: []const u8, theme: []const u8 } };
 
-    var fetch_options = HttpClient.FetchOptions{
-        .location = HttpClient.FetchOptions.Location{
+    var fetch_options = http.Client.FetchOptions{
+        .location = http.Client.FetchOptions.Location{
             .url = AUTH_LOGIN,
         },
         .extra_headers = &[_]http.Header{
@@ -572,7 +548,7 @@ pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []cons
         .password = settings.password,
     }, .{});
 
-    var client = HttpClient{ .allocator = allocator };
+    var client = http.Client{ .allocator = allocator };
     defer client.deinit();
 
     _ = try client.fetch(fetch_options);
@@ -581,8 +557,10 @@ pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []cons
 
     return .{
         .allocator = allocator,
-        .token = response.token,
-        .intents = @bitCast(@as(u28, @intCast(0))),
+        .details = ShardDetails{
+            .token = response.token,
+            .intents = @bitCast(@as(u28, @intCast(0))),
+        },
         // maybe there is a better way to do this
         .client = try Self._connect_ws(allocator, WS_CONNECT),
         .session_id = undefined,

@@ -20,11 +20,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const zig_tls = b.dependency("zig-tls", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
     const zlib = b.dependency("zlib", .{});
 
     const zmpl = b.dependency("zmpl", .{
@@ -48,14 +43,12 @@ pub fn build(b: *std.Build) void {
     // now install your own executable after it's built correctly
 
     dzig.addImport("ws", websocket.module("websocket"));
-    dzig.addImport("tls12", zig_tls.module("zig-tls12"));
     dzig.addImport("zlib", zlib.module("zlib"));
     dzig.addImport("zmpl", zmpl.module("zmpl"));
     dzig.addImport("deque", deque.module("zig-deque"));
 
     marin.root_module.addImport("discord.zig", dzig);
     marin.root_module.addImport("ws", websocket.module("websocket"));
-    marin.root_module.addImport("tls12", zig_tls.module("zig-tls12"));
     marin.root_module.addImport("zlib", zlib.module("zlib"));
     marin.root_module.addImport("zmpl", zmpl.module("zmpl"));
     marin.root_module.addImport("deque", deque.module("zig-deque"));

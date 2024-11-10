@@ -70,8 +70,6 @@ pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.M
         try mentions.append(try parseUser(allocator, &m.object));
     }
 
-    std.debug.print("parsing mentions done\n", .{});
-
     // parse member
     const member = if (obj.getT(.object, "member")) |m| try parseMember(allocator, m) else null;
 

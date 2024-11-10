@@ -1,0 +1,227 @@
+const Intents = @import("types.zig").Intents;
+const GatewayBotInfo = @import("shared.zig").GatewayBotInfo;
+const Shared = @import("shared.zig");
+const IdentifyProperties = Shared.IdentifyProperties;
+const ShardDetails = Shared.ShardDetails;
+const Internal = @import("internal.zig");
+const ConnectQueue = Internal.ConnectQueue;
+const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
+const Log = @import("internal.zig").Log;
+const Shard = @import("shard.zig");
+const std = @import("std");
+const mem = std.mem;
+const debug = Internal.debug;
+
+pub const discord_epoch = 1420070400000;
+
+/// Calculate and return the shard ID for a given guild ID
+pub inline fn calculateShardId(guildId: u64, shards: ?usize) u64 {
+    return (guildId >> 22) % shards orelse 1;
+}
+
+/// Convert a timestamp to a snowflake.
+pub inline fn snowflakeToTimestamp(id: u64) u64 {
+    return (id >> 22) + discord_epoch;
+}
+
+const Self = @This();
+
+shard_details: ShardDetails,
+allocator: mem.Allocator,
+
+/// Queue for managing shard connections
+connect_queue: ConnectQueue(Shard),
+shards: std.AutoArrayHashMap(usize, Shard),
+handler: GatewayDispatchEvent(*Shard),
+
+/// configuration settings
+options: SessionOptions,
+log: Log,
+
+pub const ShardData = struct {
+    /// resume seq to resume connections
+    resume_seq: ?usize,
+
+    /// resume_gateway_url is the url to resume the connection
+    /// https://discord.com/developers/docs/topics/gateway#ready-event
+    resume_gateway_url: ?[]const u8,
+
+    /// session_id is the unique session id of the gateway
+    session_id: ?[]const u8,
+};
+
+pub const SessionOptions = struct {
+    /// Important data which is used by the manager to connect shards to the gateway. */
+    info: GatewayBotInfo,
+    /// Delay in milliseconds to wait before spawning next shard. OPTIMAL IS ABOVE 5100. YOU DON'T WANT TO HIT THE RATE LIMIT!!!
+    spawn_shard_delay: ?u64 = 5300,
+    /// Total amount of shards your bot uses. Useful for zero-downtime updates or resharding.
+    total_shards: usize = 1,
+    shard_start: usize = 0,
+    shard_end: usize = 1,
+    /// The payload handlers for messages on the shard.
+    resharding: ?struct { interval: u64, percentage: usize } = null,
+};
+
+pub fn init(allocator: mem.Allocator, settings: struct {
+    token: []const u8,
+    intents: Intents,
+    options: SessionOptions,
+    run: GatewayDispatchEvent(*Shard),
+    log: Log,
+}) mem.Allocator.Error!Self {
+    const concurrency = settings.options.info.session_start_limit.?.max_concurrency;
+    return .{
+        .allocator = allocator,
+        .connect_queue = try ConnectQueue(Shard).init(allocator, concurrency, 5000),
+        .shards = .init(allocator),
+        .shard_details = ShardDetails{
+            .token = settings.token,
+            .intents = settings.intents,
+        },
+        .handler = settings.run,
+        .options = .{
+            .info = .{
+                .url = settings.options.info.url,
+                .shards = settings.options.info.shards,
+                .session_start_limit = settings.options.info.session_start_limit,
+            },
+            .total_shards = settings.options.total_shards,
+            .shard_start = settings.options.shard_start,
+            .shard_end = settings.options.shard_end,
+        },
+        .log = settings.log,
+    };
+}
+
+pub fn deinit(self: *Self) void {
+    self.connect_queue.deinit();
+    self.shards.deinit();
+}
+
+pub fn forceIdentify(self: *Self, shard_id: usize) !void {
+    self.logif("#{d} force identify", .{shard_id});
+    const shard = try self.create(shard_id);
+
+    return shard.identify(null);
+}
+
+pub fn disconnect(self: *Self, shard_id: usize) !void {
+    return if (self.shards.get(shard_id)) |shard| shard.disconnect();
+}
+
+pub fn disconnectAll(self: *Self) !void {
+    while (self.shards.iterator().next()) |shard| shard.value_ptr.disconnect();
+}
+
+/// spawn buckets in order
+/// Log bucket preparation
+/// Divide shards into chunks based on concurrency
+/// Assign each shard to a bucket
+/// Return list of buckets
+/// https://discord.com/developers/docs/events/gateway#sharding-max-concurrency
+fn spawnBuckets(self: *Self) ![][]Shard {
+    const concurrency = self.options.info.session_start_limit.?.max_concurrency;
+
+    self.logif("{d}-{d}", .{ self.options.shard_start, self.options.shard_end });
+
+    const range = std.math.sub(usize, self.options.shard_start, self.options.shard_end) catch 1;
+    const bucket_count = (range + concurrency - 1) / concurrency;
+
+    self.logif("#0 preparing buckets", .{});
+
+    const buckets = try self.allocator.alloc([]Shard, bucket_count);
+
+    for (buckets, 0..) |*bucket, i| {
+        const bucket_size = if ((i + 1) * concurrency > range) range - (i * concurrency) else concurrency;
+
+        bucket.* = try self.allocator.alloc(Shard, bucket_size);
+
+        for (bucket.*, 0..) |*shard, j| {
+            shard.* = try self.create(self.options.shard_start + i * concurrency + j);
+        }
+    }
+
+    self.logif("{d} buckets created", .{bucket_count});
+
+    return buckets;
+}
+
+/// creates a shard and stores it
+fn create(self: *Self, shard_id: usize) !Shard {
+    if (self.shards.get(shard_id)) |s| return s;
+
+    const shard: Shard = try Shard.init(self.allocator, shard_id, .{
+        .token = self.shard_details.token,
+        .intents = self.shard_details.intents,
+        .options = Shard.ShardOptions{},
+        .run = self.handler,
+        .log = self.log,
+    });
+
+    try self.shards.put(shard_id, shard);
+
+    return shard;
+}
+
+pub fn resume_(self: *Self, shard_id: usize, shard_data: ShardData) void {
+    if (self.shards.contains(shard_id)) return error.CannotOverrideExistingShard;
+
+    const shard = self.create(shard_id);
+
+    shard.data = shard_data;
+
+    return self.connect_queue.push(.{
+        .shard = shard,
+        .callback = &callback,
+    });
+}
+
+fn callback(self: *ConnectQueue(Shard).RequestWithShard) anyerror!void {
+    try self.shard.connect();
+}
+
+pub fn spawnShards(self: *Self) !void {
+    const buckets = try self.spawnBuckets();
+
+    self.logif("Spawning shards", .{});
+
+    for (buckets) |bucket| {
+        for (bucket) |shard| {
+            self.logif("adding {d} to connect queue", .{shard.id});
+            try self.connect_queue.push(.{
+                .shard = shard,
+                .callback = &callback,
+            });
+        }
+    }
+
+    //self.startResharder();
+}
+
+pub fn send(self: *Self, shard_id: usize, data: anytype) !void {
+    if (self.shards.get(shard_id)) |shard| {
+        try shard.send(data);
+    }
+}
+
+// SPEC OF THE RESHARDER:
+// Class Self
+//
+//     Method startResharder():
+//         If resharding interval is not set or shard bounds are not valid:
+//             Exit
+//         Set up periodic check for resharding:
+//             If new shards are required:
+//                 Log resharding process
+//                 Update options with new shard settings
+//                 Disconnect old shards and clear them from manager
+//                 Spawn shards again with updated configuration
+//
+
+inline fn logif(self: *Self, comptime format: []const u8, args: anytype) void {
+    switch (self.log) {
+        .yes => Internal.debug.info(format, args),
+        .no => {},
+    }
+}

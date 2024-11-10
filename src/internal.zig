@@ -1,89 +1,105 @@
 const std = @import("std");
 const mem = std.mem;
-const Deque = @import("deque");
+const Deque = @import("deque").Deque;
 const Discord = @import("types.zig");
+const builtin = @import("builtin");
+const IdentifyProperties = @import("shared.zig").IdentifyProperties;
 
 pub const debug = std.log.scoped(.@"discord.zig");
 
 pub const Log = union(enum) { yes, no };
 
+pub const default_identify_properties = IdentifyProperties{
+    .os = @tagName(builtin.os.tag),
+    .browser = "discord.zig",
+    .device = "discord.zig",
+};
+
 /// inspired from:
 /// https://github.com/tiramisulabs/seyfert/blob/main/src/websocket/structures/timeout.ts
-pub const ConnectQueue = struct {
-    dequeue: Deque(*const fn () void),
-    allocator: mem.Allocator,
-    remaining: usize,
-    interval_time: u64 = 5000,
-    running: bool,
-    concurrency: usize = 1,
-
-    pub fn init(allocator: mem.Allocator, concurrency: usize, interval_time: u64) !ConnectQueue {
-        return .{
-            .allocator = allocator,
-            .dequeue = try Deque(*const fn () void).init(allocator),
-            .remaining = concurrency,
-            .interval_time = interval_time,
-            .concurrency = concurrency,
+pub fn ConnectQueue(comptime T: type) type {
+    return struct {
+        pub const RequestWithShard = struct {
+            callback: *const fn (self: *RequestWithShard) anyerror!void,
+            shard: T,
         };
-    }
 
-    pub fn deinit(self: *ConnectQueue) void {
-        self.dequeue.deinit();
-    }
+        dequeue: Deque(RequestWithShard),
+        allocator: mem.Allocator,
+        remaining: usize,
+        interval_time: u64 = 5000,
+        running: bool = false,
+        concurrency: usize = 1,
 
-    pub fn push(self: *ConnectQueue, callback: *const fn () void) !void {
-        if (self.remaining == 0) {
-            return self.dequeue.pushBack(callback);
-        }
-        self.remaining -= 1;
-
-        if (!self.running) {
-            self.startInterval();
-            self.running = true;
-        }
-
-        if (self.dequeue.items.len < self.concurrency) {
-            @call(.auto, callback, .{});
-            return;
+        pub fn init(allocator: mem.Allocator, concurrency: usize, interval_time: u64) !ConnectQueue(T) {
+            return .{
+                .allocator = allocator,
+                .dequeue = try Deque(RequestWithShard).init(allocator),
+                .remaining = concurrency,
+                .interval_time = interval_time,
+                .concurrency = concurrency,
+            };
         }
 
-        return self.dequeue.pushBack(callback);
-    }
+        pub fn deinit(self: *ConnectQueue(T)) void {
+            self.dequeue.deinit();
+        }
 
-    fn startInterval(self: *ConnectQueue) void {
-        while (self.running) {
-            std.Thread.sleep(std.time.ns_per_ms * (self.interval_time / self.concurrency));
-            const callback: ?*const fn () void = self.dequeue.popFront();
+        pub fn push(self: *ConnectQueue(T), req: RequestWithShard) !void {
+            if (self.remaining == 0) {
+                return self.dequeue.pushBack(req);
+            }
+            self.remaining -= 1;
 
-            while (self.dequeue.items.len == 0 and callback == null) {}
+            if (!self.running) {
+                try self.startInterval();
+                self.running = true;
+            }
 
-            if (callback) |cb| {
-                @call(.auto, cb, .{});
+            if (self.dequeue.len() < self.concurrency) {
+                // perhaps store this?
+                const ptr = try self.allocator.create(RequestWithShard);
+                ptr.* = req;
+                try @call(.auto, req.callback, .{ptr});
                 return;
             }
 
-            if (self.remaining < self.concurrency) {
-                self.remaining += 1;
-            }
+            return self.dequeue.pushBack(req);
+        }
 
-            if (self.dequeue.len() == 0) {
-                self.running = false;
+        fn startInterval(self: *ConnectQueue(T)) !void {
+            while (self.running) {
+                std.Thread.sleep(std.time.ns_per_ms * (self.interval_time / self.concurrency));
+                const req: ?RequestWithShard = self.dequeue.popFront();
+
+                while (self.dequeue.len() == 0 and req == null) {}
+
+                if (req) |r| {
+                    const ptr = try self.allocator.create(RequestWithShard);
+                    ptr.* = r;
+                    try @call(.auto, r.callback, .{ptr});
+                    return;
+                }
+
+                if (self.remaining < self.concurrency) {
+                    self.remaining += 1;
+                }
+
+                if (self.dequeue.len() == 0) {
+                    self.running = false;
+                }
             }
         }
-    }
-};
-
-fn lessthan(_: void, a: RequestWithPrio, b: RequestWithPrio) void {
-    return std.math.order(a, b);
+    };
 }
 
 pub const Bucket = struct {
     /// The queue of requests to acquire an available request. Mapped by (shardId, RequestWithPrio)
-    queue: std.PriorityQueue(RequestWithPrio, void, lessthan),
+    queue: std.PriorityQueue(RequestWithPrio, void, Bucket.lessthan),
 
     limit: usize,
-    refillInterval: u64,
-    refillAmount: usize,
+    refill_interval: u64,
+    refill_amount: usize,
 
     /// The amount of requests that have been used up already.
     used: usize = 0,
@@ -92,31 +108,87 @@ pub const Bucket = struct {
     processing: bool = false,
 
     /// Whether the timeout should be killed because there is already one running
-    shouldStop: bool = false,
+    should_stop: std.atomic.Value(bool) = std.atomic.Value(bool).init(false),
 
     /// The timestamp in milliseconds when the next refill is scheduled.
-    refillsAt: ?u64,
+    refills_at: ?u64 = null,
 
-    /// comes in handy
-    m: std.Thread.Mutex = .{},
-    c: std.Thread.Condition = .{},
+    pub const RequestWithPrio = struct {
+        callback: *const fn () void,
+        priority: u32 = 1,
+    };
 
-    fn timeout(self: *Bucket) void {
-        _ = self;
+    fn lessthan(_: void, a: RequestWithPrio, b: RequestWithPrio) std.math.Order {
+        return std.math.order(a.priority, b.priority);
     }
 
-    pub fn processQueue() !void {}
-    pub fn refill() void {}
+    pub fn init(allocator: mem.Allocator, limit: usize, refill_interval: u64, refill_amount: usize) Bucket {
+        return .{
+            .queue = std.PriorityQueue(RequestWithPrio, void, lessthan).init(allocator, {}),
+            .limit = limit,
+            .refill_interval = refill_interval,
+            .refill_amount = refill_amount,
+        };
+    }
+
+    fn remaining(self: *Bucket) usize {
+        if (self.limit < self.used) {
+            return 0;
+        } else {
+            return self.limit - self.used;
+        }
+    }
+
+    pub fn refill(self: *Bucket) std.Thread.SpawnError!void {
+        // Lower the used amount by the refill amount
+        self.used = if (self.refill_amount > self.used) 0 else self.used - self.refill_amount;
+
+        // Reset the refills_at timestamp since it just got refilled
+        self.refills_at = null;
+
+        if (self.used > 0) {
+            if (self.should_stop.load(.monotonic) == true) {
+                self.should_stop.store(false, .monotonic);
+            }
+            const thread = try std.Thread.spawn(.{}, Bucket.timeout, .{self});
+            thread.detach;
+            self.refills_at = std.time.milliTimestamp() + self.refill_interval;
+        }
+    }
+
+    fn timeout(self: *Bucket) void {
+        while (!self.should_stop.load(.monotonic)) {
+            self.refill();
+            std.time.sleep(std.time.ns_per_ms * self.refill_interval);
+        }
+    }
+
+    pub fn processQueue(self: *Bucket) std.Thread.SpawnError!void {
+        if (self.processing) return;
+
+        while (self.queue.remove()) |first_element| {
+            if (self.remaining() != 0) {
+                first_element.callback();
+                self.used += 1;
+
+                if (!self.should_stop.load(.monotonic)) {
+                    const thread = try std.Thread.spawn(.{}, Bucket.timeout, .{self});
+                    thread.detach;
+                    self.refills_at = std.time.milliTimestamp() + self.refill_interval;
+                }
+            } else if (self.refills_at) |ra| {
+                const now = std.time.milliTimestamp();
+                if (ra > now) std.time.sleep(std.time.ns_per_ms * (ra - now));
+            }
+        }
+
+        self.processing = false;
+    }
 
     pub fn acquire(self: *Bucket, rq: RequestWithPrio) !void {
         try self.queue.add(rq);
         try self.processQueue();
     }
-};
-
-pub const RequestWithPrio = struct {
-    callback: *const fn () void,
-    priority: u32,
 };
 
 pub fn GatewayDispatchEvent(comptime T: type) type {

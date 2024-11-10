@@ -1,17 +1,13 @@
+const Intents = @import("types.zig").Intents;
+const default_identify_properties = @import("internal.zig").default_identify_properties;
 const std = @import("std");
 
 pub const IdentifyProperties = struct {
-    ///
     /// Operating system the shard runs on.
-    ///
     os: []const u8,
-    ///
     /// The "browser" where this shard is running on.
-    ///
     browser: []const u8,
-    ///
     /// The device on which the shard is running.
-    ///
     device: []const u8,
 
     system_locale: ?[]const u8 = null, // TODO parse this
@@ -48,18 +44,27 @@ pub const GatewaySessionStartLimit = struct {
 /// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 pub const GatewayBotInfo = struct {
     url: []const u8,
-    ///
     /// The recommended number of shards to use when connecting
     ///
     /// See https://discord.com/developers/docs/topics/gateway#sharding
-    ///
     shards: u32,
-    ///
     /// Information on the current session start limit
     ///
     /// See https://discord.com/developers/docs/topics/gateway#session-start-limit-object
-    ///
     session_start_limit: ?GatewaySessionStartLimit,
+};
+
+pub const ShardDetails = struct {
+    /// Bot token which is used to connect to Discord */
+    token: []const u8,
+    /// The URL of the gateway which should be connected to.
+    url: []const u8 = "wss://gateway.discord.gg",
+    /// The gateway version which should be used.
+    version: ?usize = 10,
+    /// The calculated intent value of the events which the shard should receive.
+    intents: Intents,
+    /// Identify properties to use
+    properties: IdentifyProperties = default_identify_properties,
 };
 
 pub const Snowflake = struct {

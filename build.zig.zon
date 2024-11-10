@@ -27,21 +27,17 @@
             .url = "https://github.com/magurotuna/zig-deque/archive/refs/heads/main.zip",
             .hash = "1220d1bedf7d5cfc7475842b3d4e8f03f1308be2e724a036677cceb5c4db13c3da3d",
         },
-        .@"zig-tls" = .{
-            .url = "https://github.com/yuzudev/zig-tls12/archive/refs/heads/main.zip",
-            .hash = "122079aad9eebc5945e207715c50722bbeca34e7b7a5876b3a322fad6468b28f2ed3",
-        },
-        .websocket = .{
-            .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
-            .hash = "122062d9dda015ba25780d00697e0e2c1cbc3ffa5b5eae55c9ea28b39b6d99ef1d85",
-        },
         .zlib = .{
             .url = "https://github.com/yuzudev/zig-zlib/archive/refs/heads/main.zip",
             .hash = "1220cd041e8d04f1da9d6f46d0438f4e6809b113ba3454fffdaae96b59d2b35a6b2b",
         },
         .zmpl = .{
             .url = "https://github.com/jetzig-framework/zmpl/archive/refs/heads/main.zip",
-            .hash = "12209a9d6f652ce712448da1bd41517cceef8eebf86884c1bb29c02fc3a933713afd",
+            .hash = "1220798a4647e3b0766aad653830a2601e11c567ba6bfe83e526eb91d04a6c45f7d8",
+        },
+        .websocket = .{
+            .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
+            .hash = "12207c03624f9f5a1c444bde3d484a9b1e927a902067fded98364b714de412d318e0",
         },
     },
     .paths = .{
