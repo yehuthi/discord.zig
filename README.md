@@ -55,7 +55,8 @@ TIP: make sure you use the latest Zig!
 
 ## contributing
 Contributions are welcome! Please open an issue or pull request if you'd like to help improve the library.
-Support server: https://discord.gg/RBHkBt7nP5
+* Support server: https://discord.gg/RBHkBt7nP5
+* The original repo: https://codeberg.org/yuzu/discord.zig
 
 ## general roadmap
 | Task                                                        | Status |
