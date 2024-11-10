@@ -15,8 +15,8 @@ const debug = Internal.debug;
 pub const discord_epoch = 1420070400000;
 
 /// Calculate and return the shard ID for a given guild ID
-pub inline fn calculateShardId(guildId: u64, shards: ?usize) u64 {
-    return (guildId >> 22) % shards orelse 1;
+pub inline fn calculateShardId(guild_id: u64, shards: ?usize) u64 {
+    return (guild_id >> 22) % shards orelse 1;
 }
 
 /// Convert a timestamp to a snowflake.
@@ -106,11 +106,11 @@ pub fn forceIdentify(self: *Self, shard_id: usize) !void {
     return shard.identify(null);
 }
 
-pub fn disconnect(self: *Self, shard_id: usize) !void {
+pub fn disconnect(self: *Self, shard_id: usize) Shard.CloseError!void {
     return if (self.shards.get(shard_id)) |shard| shard.disconnect();
 }
 
-pub fn disconnectAll(self: *Self) !void {
+pub fn disconnectAll(self: *Self) Shard.CloseError!void {
     while (self.shards.iterator().next()) |shard| shard.value_ptr.disconnect();
 }
 
@@ -199,10 +199,8 @@ pub fn spawnShards(self: *Self) !void {
     //self.startResharder();
 }
 
-pub fn send(self: *Self, shard_id: usize, data: anytype) !void {
-    if (self.shards.get(shard_id)) |shard| {
-        try shard.send(data);
-    }
+pub fn send(self: *Self, shard_id: usize, data: anytype) Shard.SendError!void {
+    if (self.shards.get(shard_id)) |shard| try shard.send(data);
 }
 
 // SPEC OF THE RESHARDER:

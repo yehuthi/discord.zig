@@ -34,9 +34,7 @@ const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
 const Bucket = Internal.Bucket;
 const default_identify_properties = Internal.default_identify_properties;
 
-const FetchRequest = @import("http.zig").FetchReq;
-
-const ShardSocketCloseCodes = enum(u16) {
+pub const ShardSocketCloseCodes = enum(u16) {
     Shutdown = 3000,
     ZombiedConnection = 3010,
 };
@@ -83,8 +81,10 @@ ws_mutex: std.Thread.Mutex = .{},
 rw_mutex: std.Thread.RwLock = .{},
 log: Log = .no,
 
+pub const JsonResolutionError = std.fmt.ParseIntError || std.fmt.ParseFloatError || json.ParseFromValueError || json.ParseError(json.Scanner);
+
 /// caller must free the data
-fn parseJson(self: *Self, raw: []const u8) !zmpl.Data {
+fn parseJson(self: *Self, raw: []const u8) JsonResolutionError!zmpl.Data {
     var data = zmpl.Data.init(self.allocator);
     try data.fromJson(raw);
     return data;
@@ -96,7 +96,7 @@ pub fn resumable(self: *Self) bool {
         self.sequence.load(.monotonic) > 0;
 }
 
-pub fn resume_(self: *Self) !void {
+pub fn resume_(self: *Self) SendError!void {
     const data = .{ .op = @intFromEnum(Opcode.Resume), .d = .{
         .token = self.details.token,
         .session_id = self.session_id,
@@ -111,7 +111,7 @@ inline fn gatewayUrl(self: ?*Self) []const u8 {
 }
 
 /// identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
-fn identify(self: *Self, properties: ?IdentifyProperties) !void {
+pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
     self.logif("intents: {d}", .{self.details.intents.toRaw()});
 
     if (self.details.intents.toRaw() != 0) {
@@ -204,6 +204,8 @@ pub fn deinit(self: *Self) void {
     self.client.deinit();
     self.logif("killing the whole bot", .{});
 }
+
+const ReadMessageError = mem.Allocator.Error || zlib.Error || json.ParseError(json.Scanner) || json.ParseFromValueError;
 
 /// listens for messages
 fn readMessage(self: *Self, _: anytype) !void {
@@ -313,7 +315,9 @@ fn readMessage(self: *Self, _: anytype) !void {
     }
 }
 
-pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
+pub const SendHeartbeatError = CloseError || SendError;
+
+pub fn heartbeat(self: *Self, initial_jitter: f64) SendHeartbeatError!void {
     var jitter = initial_jitter;
 
     while (true) {
@@ -341,7 +345,7 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
         self.ws_mutex.unlock();
 
         if ((std.time.milliTimestamp() - last) > (5000 * self.heart.heartbeatInterval)) {
-            self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection") catch unreachable;
+            try self.close(ShardSocketCloseCodes.ZombiedConnection, "Zombied connection");
             @panic("zombied conn\n");
         }
 
@@ -349,13 +353,18 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) !void {
     }
 }
 
-pub inline fn reconnect(self: *Self) !void {
+pub const ReconnectError = ConnectError || CloseError;
+
+pub fn reconnect(self: *Self) ReconnectError!void {
     try self.disconnect();
     try self.connect();
 }
 
 pub const ConnectError =
-    std.net.TcpConnectToAddressError || std.crypto.tls.Client.InitError(std.net.Stream) || std.net.Stream.ReadError || std.net.IPParseError || std.crypto.Certificate.Bundle.RescanError || std.net.TcpConnectToHostError || std.fmt.BufPrintError || mem.Allocator.Error;
+    net.TcpConnectToAddressError || crypto.tls.Client.InitError(net.Stream) ||
+    net.Stream.ReadError || net.IPParseError ||
+    crypto.Certificate.Bundle.RescanError || net.TcpConnectToHostError ||
+    std.fmt.BufPrintError || mem.Allocator.Error;
 
 pub fn connect(self: *Self) ConnectError!void {
     //std.time.sleep(std.time.ms_per_s * 5);
@@ -366,7 +375,7 @@ pub fn connect(self: *Self) ConnectError!void {
     self.readMessage(null) catch unreachable;
 }
 
-pub fn disconnect(self: *Self) !void {
+pub fn disconnect(self: *Self) CloseError!void {
     try self.close(ShardSocketCloseCodes.Shutdown, "Shard down request");
 }
 
@@ -456,7 +465,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
                 else => unreachable,
             };
         }
-        if (self.handler.ready) |event| event(self, ready);
+        if (self.handler.ready) |event| try event(self, ready);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
@@ -470,7 +479,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
         };
 
-        if (self.handler.message_delete) |event| event(self, data);
+        if (self.handler.message_delete) |event| try event(self, data);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
@@ -491,7 +500,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
         };
 
-        if (self.handler.message_delete_bulk) |event| event(self, data);
+        if (self.handler.message_delete_bulk) |event| try event(self, data);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_update")) {
@@ -502,7 +511,7 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         const message = try Parser.parseMessage(self.allocator, obj);
         //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
 
-        if (self.handler.message_update) |event| event(self, message);
+        if (self.handler.message_update) |event| try event(self, message);
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
@@ -515,9 +524,9 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
         self.logif("it worked {s} {?s}", .{ name, message.content });
 
-        if (self.handler.message_create) |event| event(self, message);
+        if (self.handler.message_create) |event| try event(self, message);
     } else {
-        if (self.handler.any) |anyEvent| anyEvent(self, payload);
+        if (self.handler.any) |anyEvent| try anyEvent(self, payload);
     }
 }
 

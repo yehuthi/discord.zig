@@ -4,7 +4,7 @@ const std = @import("std");
 const mem = std.mem;
 const Snowflake = @import("shared.zig").Snowflake;
 
-pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.User {
+pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) std.fmt.ParseIntError!Discord.User {
     const avatar_decoration_data_obj = obj.getT(.object, "avatar_decoration_data");
     const user = Discord.User{
         .clan = null,
@@ -35,7 +35,7 @@ pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.User {
     return user;
 }
 
-pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Member {
+pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) std.fmt.ParseIntError!Discord.Member {
     const avatar_decoration_data_member_obj = obj.getT(.object, "avatar_decoration_data");
     const member = Discord.Member{
         .deaf = obj.getT(.boolean, "deaf"),
@@ -59,7 +59,7 @@ pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Member {
 }
 
 /// caller must free the received referenced_message if any
-pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) !Discord.Message {
+pub fn parseMessage(allocator: mem.Allocator, obj: *zmpl.Data.Object) (mem.Allocator.Error || std.fmt.ParseIntError)!Discord.Message {
     // parse mentions
     const mentions_obj = obj.getT(.array, "mentions").?;
 

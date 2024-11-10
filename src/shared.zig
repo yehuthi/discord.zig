@@ -70,7 +70,7 @@ pub const ShardDetails = struct {
 pub const Snowflake = struct {
     id: u64,
 
-    pub fn fromMaybe(raw: ?[]const u8) !?Snowflake {
+    pub fn fromMaybe(raw: ?[]const u8) std.fmt.ParseIntError!?Snowflake {
         if (raw) |id| {
             return .{
                 .id = try std.fmt.parseInt(u64, id, 10),
@@ -78,7 +78,7 @@ pub const Snowflake = struct {
         } else return null;
     }
 
-    pub fn fromRaw(raw: []const u8) !Snowflake {
+    pub fn fromRaw(raw: []const u8) std.fmt.ParseIntError!Snowflake {
         return .{
             .id = try std.fmt.parseInt(u64, raw, 10),
         };

@@ -235,10 +235,10 @@ pub fn GatewayDispatchEvent(comptime T: type) type {
         // TODO: implement // interaction_create: null = null,
         // TODO: implement // invite_create: null = null,
         // TODO: implement // invite_delete: null = null,
-        message_create: ?*const fn (save: T, message: Discord.Message) void = undefined,
-        message_update: ?*const fn (save: T, message: Discord.Message) void = undefined,
-        message_delete: ?*const fn (save: T, log: Discord.MessageDelete) void = undefined,
-        message_delete_bulk: ?*const fn (save: T, log: Discord.MessageDeleteBulk) void = undefined,
+        message_create: ?*const fn (save: T, message: Discord.Message) anyerror!void = undefined,
+        message_update: ?*const fn (save: T, message: Discord.Message) anyerror!void = undefined,
+        message_delete: ?*const fn (save: T, log: Discord.MessageDelete) anyerror!void = undefined,
+        message_delete_bulk: ?*const fn (save: T, log: Discord.MessageDeleteBulk) anyerror!void = undefined,
         // TODO: implement // message_delete_bulk: null = null,
         // TODO: implement // message_reaction_add: null = null,
         // TODO: implement // message_reaction_remove: null = null,
@@ -260,8 +260,8 @@ pub fn GatewayDispatchEvent(comptime T: type) type {
         // TODO: implement // message_poll_vote_add: null = null,
         // TODO: implement // message_poll_vote_remove: null = null,
 
-        ready: ?*const fn (save: T, data: Discord.Ready) void = undefined,
+        ready: ?*const fn (save: T, data: Discord.Ready) anyerror!void = undefined,
         // TODO: implement // resumed: null = null,
-        any: ?*const fn (save: T, data: []const u8) void = undefined,
+        any: ?*const fn (save: T, data: []const u8) anyerror!void = undefined,
     };
 }
