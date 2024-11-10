@@ -4288,7 +4288,7 @@ pub const MessageReactionRemove = struct {
     type: ReactionType,
 };
 
-/// https://discord.com/developers/docs/topics/gateway#message-reaction-add
+/// https://discord.com/developers/docs/events/gateway-events#message-reaction-add
 pub const MessageReactionAdd = struct {
     /// The id of the user
     user_id: Snowflake,
@@ -4441,7 +4441,7 @@ pub const UnavailableGuild = struct {
     id: Snowflake,
 };
 
-/// https://discord.com/developers/docs/topics/gateway#message-delete-bulk
+/// https://discord.com/developers/docs/events/gateway-events#message-delete-bulk
 pub const MessageDeleteBulk = struct {
     /// The ids of the messages
     ids: []Snowflake,
@@ -4510,7 +4510,7 @@ pub const GuildMemberAdd = struct {
     guild_id: Snowflake,
 };
 
-/// https://discord.com/developers/docs/topics/gateway#message-delete
+/// https://discord.com/developers/docs/events/gateway-events#message-delete
 pub const MessageDelete = struct {
     /// The id of the message
     id: Snowflake,
