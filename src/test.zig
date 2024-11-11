@@ -35,7 +35,10 @@ pub fn main() !void {
     try handler.start(.{
         .token = std.posix.getenv("TOKEN") orelse unreachable,
         .intents = Intents.fromRaw(37379),
-        .run = .{ .message_create = &message_create, .ready = &ready },
+        .run = .{
+            .message_create = &message_create,
+            .ready = &ready,
+        },
         .log = .yes,
         .options = .{},
     });

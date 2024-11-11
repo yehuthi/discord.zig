@@ -404,12 +404,11 @@ pub fn send(self: *Self, _: bool, data: anytype) SendError!void {
 }
 
 pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
+    var attempt = try self.parseJson(payload);
+    defer attempt.deinit();
+
+    const obj = attempt.getT(.object, "d").?;
     if (std.ascii.eqlIgnoreCase(name, "ready")) {
-        var attempt = try self.parseJson(payload);
-        defer attempt.deinit();
-
-        const obj = attempt.getT(.object, "d").?;
-
         self.resume_gateway_url = obj.getT(.string, "resume_gateway_url");
 
         self.logif("new gateway url: {s}", .{self.gatewayUrl()});
@@ -466,13 +465,10 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
             };
         }
         if (self.handler.ready) |event| try event(self, ready);
+        return;
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
-        var attempt = try self.parseJson(payload);
-        defer attempt.deinit();
-
-        const obj = attempt.getT(.object, "d").?;
         const data = Discord.MessageDelete{
             .id = try Shared.Snowflake.fromRaw(obj.getT(.string, "id").?),
             .channel_id = try Shared.Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
@@ -480,13 +476,10 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         };
 
         if (self.handler.message_delete) |event| try event(self, data);
+        return;
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
-        var attempt = try self.parseJson(payload);
-        defer attempt.deinit();
-
-        const obj = attempt.getT(.object, "d").?;
         var ids = std.ArrayList([]const u8).init(self.allocator);
         defer ids.deinit();
 
@@ -501,33 +494,28 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         };
 
         if (self.handler.message_delete_bulk) |event| try event(self, data);
+        return;
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_update")) {
-        var attempt = try self.parseJson(payload);
-        defer attempt.deinit();
-        const obj = attempt.getT(.object, "d").?;
-
         const message = try Parser.parseMessage(self.allocator, obj);
         //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
 
         if (self.handler.message_update) |event| try event(self, message);
+        return;
     }
 
     if (std.ascii.eqlIgnoreCase(name, "message_create")) {
-        var attempt = try self.parseJson(payload);
-        defer attempt.deinit();
-        const obj = attempt.getT(.object, "d").?;
-
         self.logif("it worked {s}", .{name});
         const message = try Parser.parseMessage(self.allocator, obj);
         //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
         self.logif("it worked {s} {?s}", .{ name, message.content });
 
         if (self.handler.message_create) |event| try event(self, message);
-    } else {
-        if (self.handler.any) |anyEvent| try anyEvent(self, payload);
+        return;
     }
+
+    if (self.handler.any) |anyEvent| try anyEvent(self, payload);
 }
 
 /// highly experimental, do not use
