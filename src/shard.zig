@@ -40,8 +40,8 @@ pub const ShardSocketCloseCodes = enum(u16) {
 };
 
 const Heart = struct {
+    /// interval to send heartbeats, further multiply it with the jitter
     heartbeatInterval: u64,
-    ack: bool,
     /// useful for calculating ping and resuming
     lastBeat: i64,
 };
@@ -52,6 +52,7 @@ const RatelimitOptions = struct {
 };
 
 pub const ShardOptions = struct {
+    info: GatewayBotInfo,
     ratelimit_options: RatelimitOptions = .{},
 };
 
@@ -63,13 +64,12 @@ details: ShardDetails,
 //heart: Heart =
 allocator: mem.Allocator,
 resume_gateway_url: ?[]const u8 = null,
-info: GatewayBotInfo,
 bucket: Bucket,
-ratelimit_options: RatelimitOptions,
+options: ShardOptions,
 
 session_id: ?[]const u8,
-sequence: std.atomic.Value(isize) = std.atomic.Value(isize).init(0),
-heart: Heart = .{ .heartbeatInterval = 45000, .ack = false, .lastBeat = 0 },
+sequence: std.atomic.Value(isize) = .init(0),
+heart: Heart = .{ .heartbeatInterval = 45000, .lastBeat = 0 },
 
 ///
 handler: GatewayDispatchEvent(*Self),
@@ -107,7 +107,7 @@ pub fn resume_(self: *Self) SendError!void {
 }
 
 inline fn gatewayUrl(self: ?*Self) []const u8 {
-    return if (self) |s| (s.resume_gateway_url orelse s.info.url)["wss://".len..] else "gateway.discord.gg";
+    return if (self) |s| (s.resume_gateway_url orelse s.options.info.url)["wss://".len..] else "gateway.discord.gg";
 }
 
 /// identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
@@ -145,7 +145,14 @@ pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
     log: Log,
 }) zlib.Error!Self {
     return Self{
-        .info = .{ .url = "wss://gateway.discord.gg", .shards = 1, .session_start_limit = null },
+        .options = ShardOptions{
+            .info = GatewayBotInfo{
+                .url = settings.options.info.url,
+                .shards = settings.options.info.shards,
+                .session_start_limit = settings.options.info.session_start_limit,
+            },
+            .ratelimit_options = settings.options.ratelimit_options,
+        },
         .id = shard_id,
         .allocator = allocator,
         .details = ShardDetails{
@@ -165,7 +172,6 @@ pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
             settings.options.ratelimit_options.ratelimit_reset_interval,
             Self.calculateSafeRequests(settings.options.ratelimit_options),
         ),
-        .ratelimit_options = settings.options.ratelimit_options,
     };
 }
 
@@ -211,10 +217,7 @@ const ReadMessageError = mem.Allocator.Error || zlib.Error || json.ParseError(js
 fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
-    while (true) {
-        const msg = (try self.client.read()) orelse
-            continue;
-
+    while (try self.client.read()) |msg| {
         defer self.client.done(msg);
 
         // self.logif("received: {?s}\n", .{msg.data});
@@ -259,7 +262,6 @@ fn readMessage(self: *Self, _: anytype) !void {
                 self.heart = Heart{
                     // TODO: fix bug
                     .heartbeatInterval = helloPayload.heartbeat_interval,
-                    .ack = false,
                     .lastBeat = 0,
                 };
 
@@ -561,7 +563,7 @@ pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []cons
         // maybe there is a better way to do this
         .client = try Self._connect_ws(allocator, WS_CONNECT),
         .session_id = undefined,
-        .info = GatewayBotInfo{ .url = "wss://" ++ WS_CONNECT, .shards = 0, .session_start_limit = null },
+        .options = ShardOptions{ .info = GatewayBotInfo{ .url = "wss://" ++ WS_CONNECT, .shards = 0, .session_start_limit = null }, .ratelimit_options = .{} },
         .handler = settings.run,
         .log = settings.log,
         .packets = std.ArrayList(u8).init(allocator),

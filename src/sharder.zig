@@ -154,7 +154,10 @@ fn create(self: *Self, shard_id: usize) !Shard {
     const shard: Shard = try Shard.init(self.allocator, shard_id, .{
         .token = self.shard_details.token,
         .intents = self.shard_details.intents,
-        .options = Shard.ShardOptions{},
+        .options = Shard.ShardOptions{
+            .info = self.options.info,
+            .ratelimit_options = .{},
+        },
         .run = self.handler,
         .log = self.log,
     });
