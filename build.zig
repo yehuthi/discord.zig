@@ -32,6 +32,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const json_parse = b.dependency("zjson", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const marin = b.addExecutable(.{
         .name = "marin",
         .root_source_file = b.path("src/test.zig"),
@@ -46,12 +51,14 @@ pub fn build(b: *std.Build) void {
     dzig.addImport("zlib", zlib.module("zlib"));
     dzig.addImport("zmpl", zmpl.module("zmpl"));
     dzig.addImport("deque", deque.module("zig-deque"));
+    dzig.addImport("json", json_parse.module("zjson"));
 
     marin.root_module.addImport("discord.zig", dzig);
     marin.root_module.addImport("ws", websocket.module("websocket"));
     marin.root_module.addImport("zlib", zlib.module("zlib"));
     marin.root_module.addImport("zmpl", zmpl.module("zmpl"));
     marin.root_module.addImport("deque", deque.module("zig-deque"));
+    marin.root_module.addImport("json", json_parse.module("zjson"));
 
     //b.installArtifact(marin);
 

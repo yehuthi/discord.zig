@@ -12,6 +12,7 @@ const http = std.http;
 // todo use this to read compressed messages
 const zlib = @import("zlib");
 const zmpl = @import("zmpl");
+const json_parse = @import("json");
 const Parser = @import("parser.zig");
 
 const Self = @This();
@@ -83,7 +84,6 @@ log: Log = .no,
 
 pub const JsonResolutionError = std.fmt.ParseIntError || std.fmt.ParseFloatError || json.ParseFromValueError || json.ParseError(json.Scanner);
 
-/// caller must free the data
 fn parseJson(self: *Self, raw: []const u8) JsonResolutionError!zmpl.Data {
     var data = zmpl.Data.init(self.allocator);
     try data.fromJson(raw);

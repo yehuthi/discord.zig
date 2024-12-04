@@ -3,59 +3,16 @@ const Discord = @import("types.zig");
 const std = @import("std");
 const mem = std.mem;
 const Snowflake = @import("shared.zig").Snowflake;
+const Parser = @import("json");
 
-pub fn parseUser(_: mem.Allocator, obj: *zmpl.Data.Object) std.fmt.ParseIntError!Discord.User {
-    const avatar_decoration_data_obj = obj.getT(.object, "avatar_decoration_data");
-    const user = Discord.User{
-        .clan = null,
-        .id = try Snowflake.fromRaw(obj.getT(.string, "id").?),
-        .bot = obj.getT(.boolean, "bot") orelse false,
-        .username = obj.getT(.string, "username").?,
-        .accent_color = if (obj.getT(.integer, "accent_color")) |ac| @as(isize, @intCast(ac)) else null,
-        // note: for selfbots this can be typed with an enu.?,
-        .flags = if (obj.getT(.integer, "flags")) |fs| @as(isize, @intCast(fs)) else null,
-        // also for selfbot.?,
-        .email = obj.getT(.string, "email"),
-        .avatar = obj.getT(.string, "avatar"),
-        .locale = obj.getT(.string, "locale"),
-        .system = obj.getT(.boolean, "system"),
-        .banner = obj.getT(.string, "banner"),
-        .verified = obj.getT(.boolean, "verified"),
-        .global_name = obj.getT(.string, "global_name"),
-        .mfa_enabled = obj.getT(.boolean, "mfa_enabled"),
-        .public_flags = if (obj.getT(.integer, "public_flags")) |pfs| @as(isize, @intCast(pfs)) else null,
-        .premium_type = if (obj.getT(.integer, "premium_type")) |pfs| @as(Discord.PremiumTypes, @enumFromInt(pfs)) else null,
-        .discriminator = obj.getT(.string, "discriminator").?,
-        .avatar_decoration_data = if (avatar_decoration_data_obj) |add| Discord.AvatarDecorationData{
-            .asset = add.getT(.string, "asset").?,
-            .sku_id = try Snowflake.fromRaw(add.getT(.string, "sku_id").?),
-        } else null,
-    };
-
-    return user;
+pub fn parseUser(allocator: mem.Allocator, obj: []const u8) std.fmt.ParseIntError!Discord.User {
+    const user= try Parser.parse(Discord.User, allocator, obj);
+    return user.value;
 }
 
-pub fn parseMember(_: mem.Allocator, obj: *zmpl.Data.Object) std.fmt.ParseIntError!Discord.Member {
-    const avatar_decoration_data_member_obj = obj.getT(.object, "avatar_decoration_data");
-    const member = Discord.Member{
-        .deaf = obj.getT(.boolean, "deaf"),
-        .mute = obj.getT(.boolean, "mute"),
-        .pending = obj.getT(.boolean, "pending"),
-        .user = null,
-        .nick = obj.getT(.string, "nick"),
-        .avatar = obj.getT(.string, "avatar"),
-        .roles = &[0][]const u8{},
-        .joined_at = obj.getT(.string, "joined_at").?,
-        .premium_since = obj.getT(.string, "premium_since"),
-        .permissions = obj.getT(.string, "permissions"),
-        .communication_disabled_until = obj.getT(.string, "communication_disabled_until"),
-        .flags = @as(isize, @intCast(obj.getT(.integer, "flags").?)),
-        .avatar_decoration_data = if (avatar_decoration_data_member_obj) |addm| Discord.AvatarDecorationData{
-            .asset = addm.getT(.string, "asset").?,
-            .sku_id = try Snowflake.fromRaw(addm.getT(.string, "sku_id").?),
-        } else null,
-    };
-    return member;
+pub fn parseMember(allocator: mem.Allocator, obj: []const u8) std.fmt.ParseIntError!Discord.Member {
+    const member = try Parser.parse(Discord.Member, allocator, obj);
+    return member.value;
 }
 
 /// caller must free the received referenced_message if any
