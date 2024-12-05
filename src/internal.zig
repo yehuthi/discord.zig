@@ -258,10 +258,11 @@ pub const Bucket = struct {
 pub fn GatewayDispatchEvent(comptime T: type) type {
     return struct {
         application_command_permissions_update: ?*const fn (save: T, application_command_permissions: Types.ApplicationCommandPermissions) anyerror!void = undefined,
-        // TODO: implement // auto_moderation_rule_create: null = null,
-        // TODO: implement // auto_moderation_rule_update: null = null,
-        // TODO: implement // auto_moderation_rule_delete: null = null,
-        // TODO: implement // auto_moderation_action_execution: null = null,
+        auto_moderation_rule_create: ?*const fn (save: T, rule: Types.AutoModerationRule) anyerror!void = undefined,
+        auto_moderation_rule_update: ?*const fn (save: T, rule: Types.AutoModerationRule) anyerror!void = undefined,
+        auto_moderation_rule_delete: ?*const fn (save: T, rule: Types.AutoModerationRule) anyerror!void = undefined,
+        auto_moderation_action_execution: ?*const fn (save: T, action_execution: Types.AutoModerationActionExecution) anyerror!void = undefined,
+
         channel_create: ?*const fn (save: T, chan: Types.Channel) anyerror!void = undefined,
         channel_update: ?*const fn (save: T, chan: Types.Channel) anyerror!void = undefined,
         /// this isn't send when the channel is not relevant to you
@@ -319,6 +320,7 @@ pub fn GatewayDispatchEvent(comptime T: type) type {
         typing_start: ?*const fn (save: T, data: Types.TypingStart) anyerror!void = undefined,
         /// remember this is only sent when you change your profile yourself/your bot does
         user_update: ?*const fn (save: T, user: Types.User) anyerror!void = undefined,
+        // will do these someday, music is rather pointless at this point in time
         // TODO: implement // voice_channel_effect_send: null = null,
         // TODO: implement // voice_state_update: null = null,
         // TODO: implement // voice_server_update: null = null,

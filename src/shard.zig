@@ -741,6 +741,30 @@ pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
         if (self.handler.stage_instance_delete) |event| try event(self, stage.value.d.?);
     }
 
+    if (mem.eql(u8, name, "AUTO_MODERATION_RULE_CREATE")) {
+        const rule = try zjson.parse(GatewayPayload(Types.AutoModerationRule));
+
+        if (self.handler.auto_moderation_rule_create) |event| try event(self, rule.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "AUTO_MODERATION_RULE_UPDATE")) {
+        const rule = try zjson.parse(GatewayPayload(Types.AutoModerationRule));
+
+        if (self.handler.auto_moderation_rule_update) |event| try event(self, rule.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "AUTO_MODERATION_RULE_DELETE")) {
+        const rule = try zjson.parse(GatewayPayload(Types.AutoModerationRule));
+
+        if (self.handler.auto_moderation_rule_delete) |event| try event(self, rule.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "AUTO_MODERATION_ACTION_EXECUTION")) {
+        const ax = try zjson.parse(GatewayPayload(Types.AutoModerationActionExecution));
+
+        if (self.handler.auto_moderation_action_execution) |event| try event(self, ax.value.d.?);
+    }
+
     if (self.handler.any) |anyEvent|
         try anyEvent(self, payload);
 }
