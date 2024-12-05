@@ -1,16 +1,14 @@
-const Intents = @import("types.zig").Intents;
-const GatewayBotInfo = @import("shared.zig").GatewayBotInfo;
-const Shared = @import("shared.zig");
-const IdentifyProperties = Shared.IdentifyProperties;
-const ShardDetails = Shared.ShardDetails;
-const Internal = @import("internal.zig");
-const ConnectQueue = Internal.ConnectQueue;
-const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
+const Intents = @import("./structures/types.zig").Intents;
+const GatewayBotInfo = @import("internal.zig").GatewayBotInfo;
+const IdentifyProperties = @import("internal.zig").IdentifyProperties;
+const ShardDetails = @import("internal.zig").ShardDetails;
+const ConnectQueue = @import("internal.zig").ConnectQueue;
+const GatewayDispatchEvent = @import("internal.zig").GatewayDispatchEvent;
 const Log = @import("internal.zig").Log;
 const Shard = @import("shard.zig");
 const std = @import("std");
 const mem = std.mem;
-const debug = Internal.debug;
+const debug = @import("internal.zig").debug;
 
 pub const discord_epoch = 1420070400000;
 
@@ -222,7 +220,7 @@ pub fn send(self: *Self, shard_id: usize, data: anytype) Shard.SendError!void {
 
 inline fn logif(self: *Self, comptime format: []const u8, args: anytype) void {
     switch (self.log) {
-        .yes => Internal.debug.info(format, args),
+        .yes => debug.info(format, args),
         .no => {},
     }
 }

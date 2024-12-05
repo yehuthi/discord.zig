@@ -1,5 +1,4 @@
 const Discord = @import("discord.zig");
-
 const Shard = Discord.Shard;
 const Internal = Discord.Internal;
 const FetchReq = Discord.FetchReq;
@@ -22,7 +21,7 @@ fn message_create(session: *Shard, message: Discord.Message) fmt.AllocPrintError
         const payload: Discord.Partial(Discord.CreateMessage) = .{ .content = "Hi, I'm hang man, your personal assistant" };
         const json = std.json.stringifyAlloc(session.allocator, payload, .{}) catch unreachable;
         defer session.allocator.free(json);
-        const path = try fmt.allocPrint(session.allocator, "/channels/{d}/messages", .{message.channel_id.value()});
+        const path = try fmt.allocPrint(session.allocator, "/channels/{d}/messages", .{message.channel_id.into()});
 
         _ = req.makeRequest(.POST, path, json) catch unreachable;
     };
@@ -33,7 +32,7 @@ pub fn main() !void {
 
     var handler = Discord.init(tsa.allocator());
     try handler.start(.{
-        .token = std.posix.getenv("TOKEN") orelse unreachable,
+        .token = std.posix.getenv("DISCORD_TOKEN") orelse unreachable,
         .intents = Intents.fromRaw(37379),
         .run = .{
             .message_create = &message_create,

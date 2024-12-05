@@ -1,15 +1,13 @@
-pub usingnamespace @import("types.zig");
+pub usingnamespace @import("./structures/types.zig");
 pub const Shard = @import("shard.zig");
 
 pub const Internal = @import("internal.zig");
 const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
+const GatewayBotInfo = Internal.GatewayBotInfo;
 const Log = Internal.Log;
 
-pub const Sharder = @import("sharder.zig");
+pub const Sharder = @import("core.zig");
 const SessionOptions = Sharder.SessionOptions;
-
-pub const Shared = @import("shared.zig");
-const GatewayBotInfo = Shared.GatewayBotInfo;
 
 pub const FetchReq = @import("http.zig").FetchReq;
 

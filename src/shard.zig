@@ -11,29 +11,27 @@ const http = std.http;
 
 // todo use this to read compressed messages
 const zlib = @import("zlib");
-const zmpl = @import("zmpl");
-const json_parse = @import("json");
-const Parser = @import("parser.zig");
+const zjson = @import("json");
 
 const Self = @This();
 
-const Discord = @import("types.zig");
-const GatewayPayload = Discord.GatewayPayload;
-const Opcode = Discord.GatewayOpcodes;
-const Intents = Discord.Intents;
+const GatewayPayload = @import("./structures/types.zig").GatewayPayload;
+const Opcode = @import("./structures/types.zig").GatewayOpcodes;
+const Intents = @import("./structures/types.zig").Intents;
 
-const Shared = @import("shared.zig");
-const IdentifyProperties = Shared.IdentifyProperties;
-const GatewayInfo = Shared.GatewayInfo;
-const GatewayBotInfo = Shared.GatewayBotInfo;
-const GatewaySessionStartLimit = Shared.GatewaySessionStartLimit;
-const ShardDetails = Shared.ShardDetails;
+const IdentifyProperties = @import("internal.zig").IdentifyProperties;
+const GatewayInfo = @import("internal.zig").GatewayInfo;
+const GatewayBotInfo = @import("internal.zig").GatewayBotInfo;
+const GatewaySessionStartLimit = @import("internal.zig").GatewaySessionStartLimit;
+const ShardDetails = @import("internal.zig").ShardDetails;
 
-const Internal = @import("internal.zig");
-const Log = Internal.Log;
-const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
-const Bucket = Internal.Bucket;
-const default_identify_properties = Internal.default_identify_properties;
+const Log = @import("internal.zig").Log;
+const GatewayDispatchEvent = @import("internal.zig").GatewayDispatchEvent;
+const Bucket = @import("internal.zig").Bucket;
+const default_identify_properties = @import("internal.zig").default_identify_properties;
+
+const Types = @import("./structures/types.zig");
+const Snowflake = @import("./structures/snowflake.zig").Snowflake;
 
 pub const ShardSocketCloseCodes = enum(u16) {
     Shutdown = 3000,
@@ -84,12 +82,6 @@ log: Log = .no,
 
 pub const JsonResolutionError = std.fmt.ParseIntError || std.fmt.ParseFloatError || json.ParseFromValueError || json.ParseError(json.Scanner);
 
-fn parseJson(self: *Self, raw: []const u8) JsonResolutionError!zmpl.Data {
-    var data = zmpl.Data.init(self.allocator);
-    try data.fromJson(raw);
-    return data;
-}
-
 pub fn resumable(self: *Self) bool {
     return self.resume_gateway_url != null and
         self.session_id != null and
@@ -112,8 +104,6 @@ inline fn gatewayUrl(self: ?*Self) []const u8 {
 
 /// identifies in order to connect to Discord and get the online status, this shall be done on hello perhaps
 pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
-    self.logif("intents: {d}", .{self.details.intents.toRaw()});
-
     if (self.details.intents.toRaw() != 0) {
         const data = .{
             .op = @intFromEnum(Opcode.Identify),
@@ -208,7 +198,6 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
 
 pub fn deinit(self: *Self) void {
     self.client.deinit();
-    self.logif("killing the whole bot", .{});
 }
 
 const ReadMessageError = mem.Allocator.Error || zlib.Error || json.ParseError(json.Scanner) || json.ParseFromValueError;
@@ -220,7 +209,6 @@ fn readMessage(self: *Self, _: anytype) !void {
     while (try self.client.read()) |msg| {
         defer self.client.done(msg);
 
-        // self.logif("received: {?s}\n", .{msg.data});
         try self.packets.appendSlice(msg.data);
 
         // end of zlib
@@ -245,7 +233,6 @@ fn readMessage(self: *Self, _: anytype) !void {
             Opcode.Dispatch => {
                 // maybe use threads and call it instead from there
                 if (payload.t) |name| {
-                    self.logif("logging event {s}", .{name});
                     self.sequence.store(payload.s orelse 0, .monotonic);
                     try self.handleEvent(name, decompressed);
                 }
@@ -280,19 +267,16 @@ fn readMessage(self: *Self, _: anytype) !void {
             },
             Opcode.HeartbeatACK => {
                 // perhaps this needs a mutex?
-                self.logif("got heartbeat ack", .{});
                 self.rw_mutex.lock();
                 defer self.rw_mutex.unlock();
                 self.heart.lastBeat = std.time.milliTimestamp();
             },
             Opcode.Heartbeat => {
-                self.logif("sending requested heartbeat", .{});
                 self.ws_mutex.lock();
                 defer self.ws_mutex.unlock();
                 try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence.load(.monotonic) });
             },
             Opcode.Reconnect => {
-                self.logif("reconnecting", .{});
                 try self.reconnect();
             },
             Opcode.Resume => {
@@ -310,9 +294,7 @@ fn readMessage(self: *Self, _: anytype) !void {
                 self.session_id = resume_payload.session_id;
             },
             Opcode.InvalidSession => {},
-            else => {
-                self.logif("Unhandled {d} -- {s}", .{ payload.op, "none" });
-            },
+            else => {},
         }
     }
 }
@@ -325,23 +307,17 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) SendHeartbeatError!void {
     while (true) {
         // basecase
         if (jitter == 1.0) {
-            // self.logif("zzz for {d}", .{self.heart.heartbeatInterval});
             std.Thread.sleep(std.time.ns_per_ms * self.heart.heartbeatInterval);
         } else {
             const timeout = @as(f64, @floatFromInt(self.heart.heartbeatInterval)) * jitter;
-            self.logif("zzz for {d} and jitter {d}", .{ @as(u64, @intFromFloat(timeout)), jitter });
             std.Thread.sleep(std.time.ns_per_ms * @as(u64, @intFromFloat(timeout)));
-            self.logif("end timeout", .{});
         }
-
-        self.logif(">> ♥ and ack received: {d}", .{self.heart.lastBeat});
 
         self.rw_mutex.lock();
         const last = self.heart.lastBeat;
         self.rw_mutex.unlock();
 
         const seq = self.sequence.load(.monotonic);
-        self.logif("sending unrequested heartbeat", .{});
         self.ws_mutex.lock();
         try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
         self.ws_mutex.unlock();
@@ -384,7 +360,6 @@ pub fn disconnect(self: *Self) CloseError!void {
 pub const CloseError = mem.Allocator.Error || error{ReasonTooLong};
 
 pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) CloseError!void {
-    self.logif("cooked closing ws conn...\n", .{});
     // Implement reconnection logic here
     try self.client.close(.{
         .code = @intFromEnum(code), //u16
@@ -400,196 +375,35 @@ pub fn send(self: *Self, _: bool, data: anytype) SendError!void {
     var string = std.ArrayList(u8).init(fba.allocator());
     try std.json.stringify(data, .{}, string.writer());
 
-    self.logif("{s}\n", .{string.items});
-
     try self.client.write(try string.toOwnedSlice());
 }
 
 pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
-    var attempt = try self.parseJson(payload);
-    defer attempt.deinit();
+    if (mem.eql(u8, name, "READY")) {
+        const ready = try zjson.parse(GatewayPayload(Types.Ready), self.allocator, payload);
 
-    const obj = attempt.getT(.object, "d").?;
-    if (std.ascii.eqlIgnoreCase(name, "ready")) {
-        self.resume_gateway_url = obj.getT(.string, "resume_gateway_url");
-
-        self.logif("new gateway url: {s}", .{self.gatewayUrl()});
-
-        const application = obj.getT(.object, "application");
-        const user = try Parser.parseUser(self.allocator, obj.getT(.object, "user").?);
-
-        var ready = Discord.Ready{
-            .v = @as(isize, @intCast(obj.getT(.integer, "v").?)),
-            .user = user,
-            .shard = null,
-            .session_id = obj.getT(.string, "session_id").?,
-            .guilds = &[0]Discord.UnavailableGuild{},
-            .resume_gateway_url = obj.getT(.string, "resume_gateway_url").?,
-            .application = if (application) |app| .{
-                // todo
-                .name = null,
-                .description = null,
-                .rpc_origins = null,
-                .terms_of_service_url = null,
-                .privacy_policy_url = null,
-                .verify_key = null,
-                .primary_sku_id = null,
-                .slug = null,
-                .icon = null,
-                .bot_public = null,
-                .bot_require_code_grant = null,
-                .owner = null,
-                .team = null,
-                .guild_id = null,
-                .guild = null,
-                .cover_image = null,
-                .tags = null,
-                .install_params = null,
-                .integration_types_config = null,
-                .custom_install_url = null,
-                .role_connections_verification_url = null,
-                .approximate_guild_count = null,
-                .approximate_user_install_count = null,
-                .bot = null,
-                .redirect_uris = null,
-                .interactions_endpoint_url = null,
-                .flags = @as(Discord.ApplicationFlags, @bitCast(@as(u32, @intCast(app.getT(.integer, "flags").?)))),
-                .id = try Shared.Snowflake.fromRaw(app.getT(.string, "id").?),
-            } else null,
-        };
-
-        const shard = obj.getT(.array, "shard");
-
-        if (shard) |s| {
-            for (&ready.shard.?, s.items()) |*rs, ss| rs.* = switch (ss.*) {
-                .integer => |v| @as(isize, @intCast(v.value)),
-                else => unreachable,
-            };
-        }
-        if (self.handler.ready) |event| try event(self, ready);
-        return;
+        try self.handler.ready.?(self, ready.value.d.?);
     }
+    if (mem.eql(u8, name, "MESSAGE_CREATE")) {
+        const message = try zjson.parse(GatewayPayload(Types.Message), self.allocator, payload);
 
-    if (std.ascii.eqlIgnoreCase(name, "message_delete")) {
-        const data = Discord.MessageDelete{
-            .id = try Shared.Snowflake.fromRaw(obj.getT(.string, "id").?),
-            .channel_id = try Shared.Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
-            .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
-        };
-
-        if (self.handler.message_delete) |event| try event(self, data);
-        return;
+        try self.handler.message_create.?(self, message.value.d.?);
     }
+    if (mem.eql(u8, name, "MESSAGE_DELETE")) {
+        const data = try zjson.parse(GatewayPayload(Types.MessageDelete), self.allocator, payload);
 
-    if (std.ascii.eqlIgnoreCase(name, "message_delete_bulk")) {
-        var ids = std.ArrayList([]const u8).init(self.allocator);
-        defer ids.deinit();
-
-        while (obj.getT(.array, "ids").?.iterator().next()) |id| {
-            ids.append(id.string.value) catch unreachable;
-        }
-
-        const data = Discord.MessageDeleteBulk{
-            .ids = try Shared.Snowflake.fromMany(try ids.toOwnedSlice()),
-            .channel_id = try Shared.Snowflake.fromRaw(obj.getT(.string, "channel_id").?),
-            .guild_id = try Shared.Snowflake.fromMaybe(obj.getT(.string, "guild_id")),
-        };
-
-        if (self.handler.message_delete_bulk) |event| try event(self, data);
-        return;
+        try self.handler.message_delete.?(self, data.value.d.?);
     }
+    if (mem.eql(u8, name, "MESSAGE_UPDATE")) {
+        const message = try zjson.parse(GatewayPayload(Types.Message), self.allocator, payload);
 
-    if (std.ascii.eqlIgnoreCase(name, "message_update")) {
-        const message = try Parser.parseMessage(self.allocator, obj);
-        //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
-
-        if (self.handler.message_update) |event| try event(self, message);
-        return;
+        try self.handler.message_update.?(self, message.value.d.?);
     }
+    if (mem.eql(u8, name, "MESSAGE_DELETE_BULK")) {
+        const data = try zjson.parse(GatewayPayload(Types.MessageDeleteBulk), self.allocator, payload);
 
-    if (std.ascii.eqlIgnoreCase(name, "message_create")) {
-        self.logif("it worked {s}", .{name});
-        const message = try Parser.parseMessage(self.allocator, obj);
-        //defer if (message.referenced_message) |mptr| self.allocator.destroy(mptr);
-        self.logif("it worked {s} {?s}", .{ name, message.content });
-
-        if (self.handler.message_create) |event| try event(self, message);
-        return;
+        try self.handler.message_delete_bulk.?(self, data.value.d.?);
     }
 
     if (self.handler.any) |anyEvent| try anyEvent(self, payload);
-}
-
-/// highly experimental, do not use
-pub fn loginWithEmail(allocator: mem.Allocator, settings: struct { login: []const u8, password: []const u8, run: GatewayDispatchEvent(*Self), log: Log }) !Self {
-    const AUTH_LOGIN = "https://discord.com/api/v9/auth/login";
-    const WS_CONNECT = "gateway.discord.gg";
-
-    var body = std.ArrayList(u8).init(allocator);
-    defer body.deinit();
-
-    const AuthLoginResponse = struct { user_id: []const u8, token: []const u8, user_settings: struct { locale: []const u8, theme: []const u8 } };
-
-    var fetch_options = http.Client.FetchOptions{
-        .location = http.Client.FetchOptions.Location{
-            .url = AUTH_LOGIN,
-        },
-        .extra_headers = &[_]http.Header{
-            http.Header{ .name = "Accept", .value = "application/json" },
-            http.Header{ .name = "Content-Type", .value = "application/json" },
-        },
-        .method = .POST,
-        .response_storage = .{ .dynamic = &body },
-    };
-
-    fetch_options.payload = try json.stringifyAlloc(allocator, .{
-        .login = settings.login,
-        .password = settings.password,
-    }, .{});
-
-    var client = http.Client{ .allocator = allocator };
-    defer client.deinit();
-
-    _ = try client.fetch(fetch_options);
-
-    const response = try std.json.parseFromSliceLeaky(AuthLoginResponse, allocator, try body.toOwnedSlice(), .{});
-
-    return .{
-        .allocator = allocator,
-        .details = ShardDetails{
-            .token = response.token,
-            .intents = @bitCast(@as(u28, @intCast(0))),
-        },
-        // maybe there is a better way to do this
-        .client = try Self._connect_ws(allocator, WS_CONNECT),
-        .session_id = undefined,
-        .options = ShardOptions{ .info = GatewayBotInfo{ .url = "wss://" ++ WS_CONNECT, .shards = 0, .session_start_limit = null }, .ratelimit_options = .{} },
-        .handler = settings.run,
-        .log = settings.log,
-        .packets = std.ArrayList(u8).init(allocator),
-        .inflator = try zlib.Decompressor.init(allocator, .{ .header = .zlib_or_gzip }),
-        .properties = IdentifyProperties{
-            .os = "Linux",
-            .browser = "Firefox",
-            .device = "",
-            .system_locale = "en-US",
-            .browser_user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0",
-            .browser_version = "132.0",
-            .os_version = "",
-            .referrer = "",
-            .referring_domain = "",
-            .referrer_current = "",
-            .referring_domain_current = "",
-            .release_channel = "stable",
-            .client_build_number = 342245, // TODO we should make an script to fetch this...
-            .client_event_source = null,
-        },
-    };
-}
-
-inline fn logif(self: *Self, comptime format: []const u8, args: anytype) void {
-    switch (self.log) {
-        .yes => Internal.debug.info(format, args),
-        .no => {},
-    }
 }

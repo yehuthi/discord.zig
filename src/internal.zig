@@ -1,9 +1,73 @@
 const std = @import("std");
 const mem = std.mem;
 const Deque = @import("deque").Deque;
-const Discord = @import("types.zig");
 const builtin = @import("builtin");
-const IdentifyProperties = @import("shared.zig").IdentifyProperties;
+const Types = @import("./structures/types.zig");
+
+pub const IdentifyProperties = struct {
+    /// Operating system the shard runs on.
+    os: []const u8,
+    /// The "browser" where this shard is running on.
+    browser: []const u8,
+    /// The device on which the shard is running.
+    device: []const u8,
+
+    system_locale: ?[]const u8 = null, // TODO parse this
+    browser_user_agent: ?[]const u8 = null,
+    browser_version: ?[]const u8 = null,
+    os_version: ?[]const u8 = null,
+    referrer: ?[]const u8 = null,
+    referring_domain: ?[]const u8 = null,
+    referrer_current: ?[]const u8 = null,
+    referring_domain_current: ?[]const u8 = null,
+    release_channel: ?[]const u8 = null,
+    client_build_number: ?u64 = null,
+    client_event_source: ?[]const u8 = null,
+};
+
+/// https://discord.com/developers/docs/topics/gateway#get-gateway
+pub const GatewayInfo = struct {
+    /// The WSS URL that can be used for connecting to the gateway
+    url: []const u8,
+};
+
+/// https://discord.com/developers/docs/events/gateway#session-start-limit-object
+pub const GatewaySessionStartLimit = struct {
+    /// Total number of session starts the current user is allowed
+    total: u32,
+    /// Remaining number of session starts the current user is allowed
+    remaining: u32,
+    /// Number of milliseconds after which the limit resets
+    reset_after: u32,
+    /// Number of identify requests allowed per 5 seconds
+    max_concurrency: u32,
+};
+
+/// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
+pub const GatewayBotInfo = struct {
+    url: []const u8,
+    /// The recommended number of shards to use when connecting
+    ///
+    /// See https://discord.com/developers/docs/topics/gateway#sharding
+    shards: u32,
+    /// Information on the current session start limit
+    ///
+    /// See https://discord.com/developers/docs/topics/gateway#session-start-limit-object
+    session_start_limit: ?GatewaySessionStartLimit,
+};
+
+pub const ShardDetails = struct {
+    /// Bot token which is used to connect to Discord */
+    token: []const u8,
+    /// The URL of the gateway which should be connected to.
+    url: []const u8 = "wss://gateway.discord.gg",
+    /// The gateway version which should be used.
+    version: ?usize = 10,
+    /// The calculated intent value of the events which the shard should receive.
+    intents: Types.Intents,
+    /// Identify properties to use
+    properties: IdentifyProperties = default_identify_properties,
+};
 
 pub const debug = std.log.scoped(.@"discord.zig");
 
@@ -235,10 +299,10 @@ pub fn GatewayDispatchEvent(comptime T: type) type {
         // TODO: implement // interaction_create: null = null,
         // TODO: implement // invite_create: null = null,
         // TODO: implement // invite_delete: null = null,
-        message_create: ?*const fn (save: T, message: Discord.Message) anyerror!void = undefined,
-        message_update: ?*const fn (save: T, message: Discord.Message) anyerror!void = undefined,
-        message_delete: ?*const fn (save: T, log: Discord.MessageDelete) anyerror!void = undefined,
-        message_delete_bulk: ?*const fn (save: T, log: Discord.MessageDeleteBulk) anyerror!void = undefined,
+        message_create: ?*const fn (save: T, message: Types.Message) anyerror!void = undefined,
+        message_update: ?*const fn (save: T, message: Types.Message) anyerror!void = undefined,
+        message_delete: ?*const fn (save: T, log: Types.MessageDelete) anyerror!void = undefined,
+        message_delete_bulk: ?*const fn (save: T, log: Types.MessageDeleteBulk) anyerror!void = undefined,
         // TODO: message_reaction_add: ?*const fn (save: T, log: Discord.MessageReactionAdd) anyerror!void = undefined,
         // TODO: implement // message_reaction_remove: null = null,
         // TODO: implement // message_reaction_remove_all: null = null,
@@ -259,7 +323,7 @@ pub fn GatewayDispatchEvent(comptime T: type) type {
         // TODO: implement // message_poll_vote_add: null = null,
         // TODO: implement // message_poll_vote_remove: null = null,
 
-        ready: ?*const fn (save: T, data: Discord.Ready) anyerror!void = undefined,
+        ready: ?*const fn (save: T, data: Types.Ready) anyerror!void = undefined,
         // TODO: implement // resumed: null = null,
         any: ?*const fn (save: T, data: []const u8) anyerror!void = undefined,
     };

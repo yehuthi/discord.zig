@@ -22,19 +22,15 @@ pub fn build(b: *std.Build) void {
 
     const zlib = b.dependency("zlib", .{});
 
-    const zmpl = b.dependency("zmpl", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
     const deque = b.dependency("zig-deque", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const json_parse = b.dependency("zjson", .{
+    const json_parse = b.addModule("zjson", .{
         .target = target,
         .optimize = optimize,
+        .root_source_file = b.path("vendor/zjson/json.zig"),
     });
 
     const marin = b.addExecutable(.{
@@ -49,16 +45,14 @@ pub fn build(b: *std.Build) void {
 
     dzig.addImport("ws", websocket.module("websocket"));
     dzig.addImport("zlib", zlib.module("zlib"));
-    dzig.addImport("zmpl", zmpl.module("zmpl"));
     dzig.addImport("deque", deque.module("zig-deque"));
-    dzig.addImport("json", json_parse.module("zjson"));
+    dzig.addImport("json", json_parse);
 
     marin.root_module.addImport("discord.zig", dzig);
     marin.root_module.addImport("ws", websocket.module("websocket"));
     marin.root_module.addImport("zlib", zlib.module("zlib"));
-    marin.root_module.addImport("zmpl", zmpl.module("zmpl"));
     marin.root_module.addImport("deque", deque.module("zig-deque"));
-    marin.root_module.addImport("json", json_parse.module("zjson"));
+    marin.root_module.addImport("json", json_parse);
 
     //b.installArtifact(marin);
 

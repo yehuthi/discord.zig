@@ -31,17 +31,9 @@
             .url = "https://github.com/yuzudev/zig-zlib/archive/refs/heads/main.zip",
             .hash = "1220cd041e8d04f1da9d6f46d0438f4e6809b113ba3454fffdaae96b59d2b35a6b2b",
         },
-        .zmpl = .{
-            .url = "https://github.com/jetzig-framework/zmpl/archive/refs/heads/main.zip",
-            .hash = "1220ed127f38fa51df53a85b3cc2030a7555e34058db7fd374ebaef817abb43d35f7",
-        },
         .websocket = .{
             .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
             .hash = "12207c03624f9f5a1c444bde3d484a9b1e927a902067fded98364b714de412d318e0",
-        },
-        .zjson = .{
-            .url = "git+https://codeberg.org/yuzu/json#322d90128e3a78b7639c7eb849aeee027613034a",
-            .hash = "12209277a5606fc3d1c6491198b787ce977ccbfc9371efb4e295a2b410d231c67e2e",
         },
     },
     .paths = .{
