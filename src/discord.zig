@@ -53,7 +53,7 @@ pub fn start(self: *Self, settings: struct {
 
     // check status idk
     if (res.status != http.Status.ok) {
-        @panic("we are cooked\n");
+        @panic("we are cooked\n"); // check your token dumbass
     }
 
     const parsed = try json.parseFromSlice(GatewayBotInfo, self.allocator, body, .{});

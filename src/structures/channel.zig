@@ -15,13 +15,13 @@ const ForumLayout = @import("shared.zig").ForumLayout;
 /// https://discord.com/developers/docs/resources/channel#allowed-mentions-object
 pub const AllowedMentions = struct {
     /// An array of allowed mention types to parse from the content.
-    parse: []?AllowedMentionsTypes,
+    parse: ?[]AllowedMentionsTypes,
     /// For replies, whether to mention the author of the message being replied to (default false)
     replied_user: ?bool,
     /// Array of role_ids to mention (Max size of 100)
-    roles: []?[]const u8,
+    roles: ?[][]const u8,
     /// Array of user_ids to mention (Max size of 100)
-    users: []?[]const u8,
+    users: ?[][]const u8,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#typing-start
@@ -49,7 +49,7 @@ pub const Channel = struct {
     /// Sorting position of the channel (channels with the same position are sorted by id)
     position: ?isize,
     /// Explicit permission overwrites for members and roles
-    permission_overwrites: []?Overwrite,
+    permission_overwrites: ?[]Overwrite,
     /// The name of the channel (1-100 characters)
     name: ?[]const u8,
     /// The channel topic (0-4096 characters for GUILD_FORUM channels, 0-1024 characters for all others)
@@ -65,7 +65,7 @@ pub const Channel = struct {
     /// Amount of seconds a user has to wait before sending another message (0-21600); bots, as well as users with the permission `manage_messages` or `manage_channel`, are unaffected
     rate_limit_per_user: ?isize,
     /// the recipients of the DM
-    recipients: []?User,
+    recipients: ?[]User,
     /// icon hash of the group DM
     icon: ?[]const u8,
     /// Id of the creator of the thread
@@ -99,9 +99,9 @@ pub const Channel = struct {
     /// isize of messages ever sent in a thread, it's similar to `message_count` on message creation, but will not decrement the isize when a message is deleted
     total_message_sent: ?isize,
     /// The set of tags that can be used in a GUILD_FORUM channel
-    available_tags: []?ForumTag,
+    available_tags: ?[]ForumTag,
     /// The IDs of the set of tags that have been applied to a thread in a GUILD_FORUM channel
-    applied_tags: []?[]const u8,
+    applied_tags: ?[][]const u8,
     /// the emoji to show in the add reaction button on a thread in a GUILD_FORUM channel
     default_reaction_emoji: ?DefaultReactionEmoji,
     /// the initial rate_limit_per_user to set on newly created threads in a channel. this field is copied to the thread at creation time and does not live update.

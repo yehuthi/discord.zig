@@ -25,9 +25,9 @@ pub const AuditLog = struct {
     ///
     threads: []Channel,
     /// List of guild scheduled events found in the audit log
-    guild_scheduled_events: []?ScheduledEvent,
+    guild_scheduled_events: ?[]ScheduledEvent,
     /// List of auto moderation rules referenced in the audit log
-    auto_moderation_rules: []?AutoModerationRule,
+    auto_moderation_rules: ?[]AutoModerationRule,
     /// List of application commands referenced in the audit log
     application_commands: []ApplicationCommand,
 };
@@ -38,7 +38,7 @@ pub const AuditLogEntry = struct {
     target_id: ?Snowflake,
     /// Changes made to the `target_id`
     /// TODO: change this
-    changes: []?AuditLogChange(noreturn),
+    changes: ?[]AuditLogChange(noreturn),
     /// User or app that made the changes
     user_id: ?Snowflake,
     /// ID of the entry

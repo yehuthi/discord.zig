@@ -42,6 +42,8 @@ pub const ParserError = error{
     UnclosedBraces,
     /// for `ultimateParserAssert`
     UnconsumedInput,
+    /// unknown property
+    UnknownProperty,
 };
 
 /// Parser a = String -> Either ParserError (String, a)
@@ -945,10 +947,30 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             if (value.is(.null)) return null;
             return try parseInto(optionalInfo.child, allocator, value); // optional
         },
-        .@"union" => {
+        .@"union" => |unionInfo| {
             if (std.meta.hasFn(T, "toJson")) {
                 return try T.toJson(allocator, value);
             }
+            if (unionInfo.tag_type == null)
+                @compileError("Unable to parse into untagged union '" ++ @typeName(T) ++ "'");
+
+            var result: ?T = null;
+            const fieldname = switch (value) {
+                .string => |slice| slice,
+                else => @panic("can only cast strings"),
+            };
+
+            inline for (unionInfo.fields) |u_field| {
+                if (std.mem.eql(u8, u_field.name, fieldname)) {
+                    if (u_field.type == void) {
+                        result = @unionInit(T, u_field.name, {});
+                    } else {
+                        @panic("unions may only contain empty values");
+                    }
+                }
+            }
+
+            return result.?;
         },
         .@"enum" => {
             if (std.meta.hasFn(T, "toJson"))

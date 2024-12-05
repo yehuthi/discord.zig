@@ -41,9 +41,9 @@ pub const GuildMembersChunk = struct {
     /// The total isize of expected chunks for this response
     chunk_count: isize,
     /// If passing an invalid id to `REQUEST_GUILD_MEMBERS`, it will be returned here
-    not_found: []?[]const u8,
+    not_found: ?[][]const u8,
     /// If passing true to `REQUEST_GUILD_MEMBERS`, presences of the returned members will be here
-    presences: []?PresenceUpdate,
+    presences: ?[]PresenceUpdate,
     /// The nonce used in the Guild Members Request
     nonce: ?[]const u8,
 };
@@ -113,7 +113,7 @@ pub const MessageReactionAdd = struct {
     /// true if this is a super-reaction
     burst: bool,
     /// Colors used for super-reaction animation in "#rrggbb" format
-    burst_colors: []?[]const u8,
+    burst_colors: ?[][]const u8,
     /// The type of reaction
     type: ReactionType,
 };
@@ -306,9 +306,9 @@ pub const ThreadMembersUpdate = struct {
     /// The id of the guild
     guild_id: Snowflake,
     /// The users who were added to the thread
-    added_members: []?ThreadMember,
+    added_members: ?[]ThreadMember,
     /// The id of the users who were removed from the thread
-    removed_member_ids: []?[]const u8,
+    removed_member_ids: ?[][]const u8,
     /// the approximate isize of members in the thread, capped at 50
     member_count: isize,
 };
@@ -496,7 +496,7 @@ pub const ModifyChannel = struct {
     /// The user limit of the voice channel; 0 refers to no limit, 1 to 99 refers to a user limit
     user_limit: ?isize,
     /// Channel or category-specific permissions
-    permission_overwrites: []?Overwrite,
+    permission_overwrites: ?[]Overwrite,
     /// Id of the new parent category for a channel
     parent_id: ?Snowflake,
     /// Voice region id for the voice channel, automatic when set to null
@@ -525,7 +525,7 @@ pub const ModifyChannel = struct {
         emoji_name: []const u8,
     },
     /// The IDs of the set of tags that have been applied to a thread in a GUILD_FORUM channel; limited to 5
-    applied_tags: []?[]const u8,
+    applied_tags: ?[][]const u8,
     /// the emoji to show in the add reaction button on a thread in a GUILD_FORUM channel
     default_reaction_emoji: ?struct {
         /// The id of a guild's custom emoji
@@ -548,7 +548,7 @@ pub const CreateGuildEmoji = struct {
     ///The 128x128 emoji image. Emojis and animated emojis have a maximum file size of 256kb. Attempting to upload an emoji larger than this limit will fail and return 400 Bad Request and an error message, but not a JSON status code. If a URL is provided to the image parameter, eno will automatically convert it to a base64 []const u8 internally.
     image: []const u8,
     /// Roles allowed to use this emoji
-    roles: []?[]const u8,
+    roles: ?[][]const u8,
 };
 
 /// https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
@@ -556,7 +556,7 @@ pub const ModifyGuildEmoji = struct {
     /// Name of the emoji
     name: ?[]const u8,
     /// Roles allowed to use this emoji
-    roles: []?[]const u8,
+    roles: ?[][]const u8,
 };
 
 pub const CreateGuildChannel = struct {
@@ -575,7 +575,7 @@ pub const CreateGuildChannel = struct {
     /// Sorting position of the channel
     position: ?isize,
     /// The channel's permission overwrites
-    permission_overwrites: []?Overwrite,
+    permission_overwrites: ?[]Overwrite,
     /// Id of the parent category for a channel
     parent_id: ?Snowflake,
     /// Whether the channel is nsfw
@@ -617,7 +617,7 @@ pub const CreateMessage = struct {
     /// true if this is a TTS message
     tts: ?bool,
     /// Embedded `rich` content (up to 6000 characters)
-    embeds: []?Embed,
+    embeds: ?[]Embed,
     /// Allowed mentions for the message
     allowed_mentions: ?AllowedMentions,
     /// Include to make your message a reply
@@ -645,7 +645,7 @@ pub const ModifyGuildWelcomeScreen = struct {
     /// Whether the welcome screen is enabled
     enabled: ?bool,
     /// Channels linked in the welcome screen and their display options
-    welcome_screen: []?WelcomeScreenChannel,
+    welcome_screen: ?[]WelcomeScreenChannel,
     /// The server description to show in the welcome screen
     description: ?[]const u8,
 };
@@ -696,22 +696,22 @@ pub const CreateForumPostWithMessage = struct {
         /// Message contents (up to 2000 characters)
         content: ?[]const u8,
         /// Embedded rich content (up to 6000 characters)
-        embeds: []?Embed,
+        embeds: ?[]Embed,
         /// Allowed mentions for the message
-        allowed_mentions: []?AllowedMentions,
+        allowed_mentions: ?[]AllowedMentions,
         /// Components to include with the message
-        components: []?[]MessageComponent,
+        components: ?[][]MessageComponent,
         /// IDs of up to 3 stickers in the server to send in the message
-        sticker_ids: []?[]const u8,
+        sticker_ids: ?[][]const u8,
         /// JSON-encoded body of non-file params, only for multipart/form-data requests. See {@link https://discord.com/developers/docs/reference#uploading-files Uploading Files};
         payload_json: ?[]const u8,
         /// Attachment objects with filename and description. See {@link https://discord.com/developers/docs/reference#uploading-files Uploading Files};
-        attachments: []?Attachment,
+        attachments: ?[]Attachment,
         /// Message flags combined as a bitfield, only SUPPRESS_EMBEDS can be set
         flags: ?MessageFlags,
     },
     /// the IDs of the set of tags that have been applied to a thread in a GUILD_FORUM channel
-    applied_tags: []?[]const u8,
+    applied_tags: ?[][]const u8,
 };
 
 pub const ArchivedThreads = struct {

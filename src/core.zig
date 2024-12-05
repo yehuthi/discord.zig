@@ -1,4 +1,5 @@
 const Intents = @import("./structures/types.zig").Intents;
+const Snowflake = @import("./structures/snowflake.zig").Snowflake;
 const GatewayBotInfo = @import("internal.zig").GatewayBotInfo;
 const IdentifyProperties = @import("internal.zig").IdentifyProperties;
 const ShardDetails = @import("internal.zig").ShardDetails;
@@ -13,13 +14,13 @@ const debug = @import("internal.zig").debug;
 pub const discord_epoch = 1420070400000;
 
 /// Calculate and return the shard ID for a given guild ID
-pub inline fn calculateShardId(guild_id: u64, shards: ?usize) u64 {
-    return (guild_id >> 22) % shards orelse 1;
+pub inline fn calculateShardId(guild_id: Snowflake, shards: ?usize) u64 {
+    return (guild_id.into() >> 22) % shards orelse 1;
 }
 
 /// Convert a timestamp to a snowflake.
-pub inline fn snowflakeToTimestamp(id: u64) u64 {
-    return (id >> 22) + discord_epoch;
+pub inline fn snowflakeToTimestamp(id: Snowflake) u64 {
+    return (id.into() >> 22) + discord_epoch;
 }
 
 const Self = @This();

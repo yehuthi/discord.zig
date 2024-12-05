@@ -27,7 +27,7 @@ pub const Embed = struct {
     /// Author information
     author: ?EmbedAuthor,
     /// Fields information
-    fields: []?EmbedField,
+    fields: ?[]EmbedField,
 };
 
 /// https://discord.com/developers/docs/resources/channel#embed-object-embed-author-structure

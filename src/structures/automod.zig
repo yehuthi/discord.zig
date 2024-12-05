@@ -55,7 +55,7 @@ pub const AutoModerationRuleTriggerMetadata = struct {
     ///
     /// Can have up to 1000 elements in the array and each []const u8 can have up to 60 characters
     ///
-    keyword_filter: []?[]const u8,
+    keyword_filter: ?[][]const u8,
     ///
     /// Regular expression patterns which will be matched against content.
     ///
@@ -71,7 +71,7 @@ pub const AutoModerationRuleTriggerMetadata = struct {
     /// @remarks
     /// Only present with {@link AutoModerationTriggerTypes.KeywordPreset};.
     ///
-    presets: []?AutoModerationRuleTriggerMetadataPresets,
+    presets: ?[]AutoModerationRuleTriggerMetadataPresets,
     ///
     /// The substrings which will exempt from triggering the preset trigger type.
     ///
@@ -81,7 +81,7 @@ pub const AutoModerationRuleTriggerMetadata = struct {
     /// When used with {@link AutoModerationTriggerTypes.Keyword}; and {@link AutoModerationTriggerTypes.MemberProfile}; there can have up to 100 elements in the array and each []const u8 can have up to 60 characters.
     /// When used with {@link AutoModerationTriggerTypes.KeywordPreset}; there can have up to 1000 elements in the array and each []const u8 can have up to 60 characters.
     ///
-    allow_list: []?[]const u8,
+    allow_list: ?[][]const u8,
     ///
     /// Total isize of mentions (role & user) allowed per message.
     ///

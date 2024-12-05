@@ -7,6 +7,8 @@ const Thread = std.Thread;
 const std = @import("std");
 const fmt = std.fmt;
 
+const INTENTS = 53608447;
+
 fn ready(_: *Shard, payload: Discord.Ready) !void {
     std.debug.print("logged in as {s}\n", .{payload.user.username});
 }
@@ -27,17 +29,19 @@ fn message_create(session: *Shard, message: Discord.Message) fmt.AllocPrintError
     };
 }
 
+fn message_reaction_add(_: *Shard, _: Discord.MessageReactionAdd) !void {}
+fn guild_create(_: *Shard, guild: Discord.Guild) !void {
+    std.debug.print("{any}\n", .{guild});
+}
+
 pub fn main() !void {
     var tsa = std.heap.ThreadSafeAllocator{ .child_allocator = std.heap.c_allocator };
 
     var handler = Discord.init(tsa.allocator());
     try handler.start(.{
-        .token = std.posix.getenv("DISCORD_TOKEN") orelse unreachable,
-        .intents = Intents.fromRaw(37379),
-        .run = .{
-            .message_create = &message_create,
-            .ready = &ready,
-        },
+        .token = std.posix.getenv("DISCORD_TOKEN").?,
+        .intents = Intents.fromRaw(INTENTS),
+        .run = .{ .message_create = &message_create, .ready = &ready, .message_reaction_add = &message_reaction_add },
         .log = .yes,
         .options = .{},
     });

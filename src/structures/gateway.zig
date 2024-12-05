@@ -74,7 +74,7 @@ pub const Activity = struct {
     /// Secrets for Rich Presence joining and spectating
     secrets: ?ActivitySecrets,
     /// The custom buttons shown in the Rich Presence (max 2)
-    buttons: []?ActivityButton,
+    buttons: ?[]ActivityButton,
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object

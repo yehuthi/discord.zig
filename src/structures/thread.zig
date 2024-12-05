@@ -47,7 +47,7 @@ pub const ThreadListSync = struct {
     /// The id of the guild
     guild_id: Snowflake,
     /// The parent channel ids whose threads are being synced. If omitted, then threads were synced for the entire guild. This array may contain channelIds that have no active threads as well, so you know to clear that data
-    channel_ids: []?[]const u8,
+    channel_ids: ?[][]const u8,
     /// All active threads in the given channels that the current user can access
     threads: []Channel,
     /// All thread member objects from the synced threads for the current user, indicating which threads the current user has been added to

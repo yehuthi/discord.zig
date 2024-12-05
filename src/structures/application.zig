@@ -13,7 +13,7 @@ pub const Application = struct {
     /// The description of the app
     description: []const u8,
     /// An array of rpc origin urls, if rpc is enabled
-    rpc_origins: []?[]const u8,
+    rpc_origins: ?[][]const u8,
     /// The url of the app's terms of service
     terms_of_service_url: ?[]const u8,
     /// The url of the app's privacy policy
@@ -45,7 +45,7 @@ pub const Application = struct {
     ///If this application is a game sold on , this field will be the hash of the image on store embeds
     cover_image: ?[]const u8,
     /// up to 5 tags describing the content and functionality of the application
-    tags: []?[]const u8,
+    tags: ?[][]const u8,
     /// settings for the application's default in-app authorization link, if enabled
     install_params: ?InstallParams,
     // Default scopes and permissions for each supported installation context.
@@ -63,7 +63,7 @@ pub const Application = struct {
     /// Partial user object for the bot user associated with the app
     bot: ?Partial(User),
     /// Array of redirect URIs for the app
-    redirect_uris: []?[]const u8,
+    redirect_uris: ?[][]const u8,
     /// Interactions endpoint URL for the app
     interactions_endpoint_url: ?[]const u8,
 };

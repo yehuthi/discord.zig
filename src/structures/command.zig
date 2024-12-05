@@ -25,7 +25,7 @@ pub const ApplicationCommand = struct {
     /// Localization object for `description` field. Values follow the same restrictions as `description`
     description_localizations: ?[]const u8, //?Localization,
     /// Parameters for the command, max of 25
-    options: []?ApplicationCommandOption,
+    options: ?[]ApplicationCommandOption,
     /// Set of permissions represented as a bit set
     default_member_permissions: ?[]const u8,
     ///
@@ -35,7 +35,7 @@ pub const ApplicationCommand = struct {
     /// This value is available only for globally-scoped commands
     /// Defaults to the application configured contexts
     ///
-    integration_types: []?ApplicationIntegrationType,
+    integration_types: ?[]ApplicationIntegrationType,
     ///
     /// Interaction context(s) where the command can be used
     ///
@@ -43,7 +43,7 @@ pub const ApplicationCommand = struct {
     /// This value is available only for globally-scoped commands
     /// By default, all interaction context types included for new commands.
     ///
-    contexts: []?InteractionContextType,
+    contexts: ?[]InteractionContextType,
     ///
     /// Indicates whether the command is available in DMs with the app, only for globally-scoped commands. By default, commands are visible.
     ///
@@ -87,7 +87,7 @@ pub const CreateApplicationCommand = struct {
     /// Localization object for `description` field. Values follow the same restrictions as `description`
     description_localizations: []const u8, //?Localization,
     /// Parameters for the command, max of 25
-    options: []?ApplicationCommandOption,
+    options: ?[]ApplicationCommandOption,
     /// Set of permissions represented as a bit set
     default_member_permissions: ?[]const u8,
     ///
@@ -97,7 +97,7 @@ pub const CreateApplicationCommand = struct {
     /// This value is available only for globally-scoped commands
     /// Defaults to the application configured contexts
     ///
-    integration_types: []?ApplicationIntegrationType,
+    integration_types: ?[]ApplicationIntegrationType,
     ///
     /// Interaction context(s) where the command can be used
     ///
@@ -105,7 +105,7 @@ pub const CreateApplicationCommand = struct {
     /// This value is available only for globally-scoped commands
     /// By default, all interaction context types included for new commands.
     ///
-    contexts: []?InteractionContextType,
+    contexts: ?[]InteractionContextType,
     ///
     /// Indicates whether the command is available in DMs with the app, only for globally-scoped commands. By default, commands are visible.
     ///
@@ -170,14 +170,14 @@ pub const ApplicationCommandOption = struct {
     ///
     /// If you provide an array of choices, they will be the ONLY accepted values for this option
     ///
-    choices: []?ApplicationCommandOptionChoice,
+    choices: ?[]ApplicationCommandOptionChoice,
     ///
     /// If the option is a subcommand or subcommand group type, these nested options will be the parameters
     ///
     /// @remarks
     /// Only valid in option of type {@link ApplicationCommandOptionTypes.SubCommand | SubCommand}; or {@link ApplicationCommandOptionTypes.SubCommandGroup | SubCommandGroup};
     ///
-    options: []?ApplicationCommandOption,
+    options: ?[]ApplicationCommandOption,
     ///
     /// If autocomplete interactions are enabled for this option.
     ///
@@ -193,7 +193,7 @@ pub const ApplicationCommandOption = struct {
     /// @remarks
     /// Only valid in option of type {@link ApplicationCommandOptionTypes.Channel | Channel};
     ///
-    channel_types: []?ChannelTypes,
+    channel_types: ?[]ChannelTypes,
     ///
     /// The minimum permitted value
     ///

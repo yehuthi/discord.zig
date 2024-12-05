@@ -206,7 +206,7 @@ const ReadMessageError = mem.Allocator.Error || zlib.Error || json.ParseError(js
 fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
-    while (try self.client.read()) |msg| {
+    while (try self.client.read()) |msg| { // check your intents, dumbass
         defer self.client.done(msg);
 
         try self.packets.appendSlice(msg.data);
@@ -247,7 +247,6 @@ fn readMessage(self: *Self, _: anytype) !void {
                 // PARSE NEW URL IN READY
 
                 self.heart = Heart{
-                    // TODO: fix bug
                     .heartbeatInterval = helloPayload.heartbeat_interval,
                     .lastBeat = 0,
                 };
@@ -255,9 +254,9 @@ fn readMessage(self: *Self, _: anytype) !void {
                 if (self.resumable()) {
                     try self.resume_();
                     return;
-                } else {
-                    try self.identify(self.details.properties);
                 }
+
+                try self.identify(self.details.properties);
 
                 var prng = std.Random.DefaultPrng.init(0);
                 const jitter = std.Random.float(prng.random(), f64);
@@ -379,31 +378,168 @@ pub fn send(self: *Self, _: bool, data: anytype) SendError!void {
 }
 
 pub fn handleEvent(self: *Self, name: []const u8, payload: []const u8) !void {
+    // std.debug.print("event: {s}\n", .{name});
+
     if (mem.eql(u8, name, "READY")) {
         const ready = try zjson.parse(GatewayPayload(Types.Ready), self.allocator, payload);
 
-        try self.handler.ready.?(self, ready.value.d.?);
+        if (self.handler.ready) |event| try event(self, ready.value.d.?);
     }
+
+    if (mem.eql(u8, name, "CHANNEL_CREATE")) {
+        const chan = try zjson.parse(GatewayPayload(Types.Channel), self.allocator, payload);
+
+        if (self.handler.channel_create) |event| try event(self, chan.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "CHANNEL_UPDATE")) {
+        const chan = try zjson.parse(GatewayPayload(Types.Channel), self.allocator, payload);
+
+        if (self.handler.channel_update) |event| try event(self, chan.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "CHANNEL_DELETE")) {
+        const chan = try zjson.parse(GatewayPayload(Types.Channel), self.allocator, payload);
+
+        if (self.handler.channel_delete) |event| try event(self, chan.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "INVITE_CREATE")) {
+        const data = try zjson.parse(GatewayPayload(Types.InviteCreate), self.allocator, payload);
+
+        if (self.handler.invite_create) |event| try event(self, data.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "INVITE_DELETE")) {
+        const data = try zjson.parse(GatewayPayload(Types.InviteDelete), self.allocator, payload);
+
+        if (self.handler.invite_delete) |event| try event(self, data.value.d.?);
+    }
+
     if (mem.eql(u8, name, "MESSAGE_CREATE")) {
         const message = try zjson.parse(GatewayPayload(Types.Message), self.allocator, payload);
 
-        try self.handler.message_create.?(self, message.value.d.?);
+        if (self.handler.message_create) |event| try event(self, message.value.d.?);
     }
+
     if (mem.eql(u8, name, "MESSAGE_DELETE")) {
         const data = try zjson.parse(GatewayPayload(Types.MessageDelete), self.allocator, payload);
 
-        try self.handler.message_delete.?(self, data.value.d.?);
+        if (self.handler.message_delete) |event| try event(self, data.value.d.?);
     }
+
     if (mem.eql(u8, name, "MESSAGE_UPDATE")) {
         const message = try zjson.parse(GatewayPayload(Types.Message), self.allocator, payload);
 
-        try self.handler.message_update.?(self, message.value.d.?);
+        if (self.handler.message_update) |event| try event(self, message.value.d.?);
     }
+
     if (mem.eql(u8, name, "MESSAGE_DELETE_BULK")) {
         const data = try zjson.parse(GatewayPayload(Types.MessageDeleteBulk), self.allocator, payload);
 
-        try self.handler.message_delete_bulk.?(self, data.value.d.?);
+        if (self.handler.message_delete_bulk) |event| try event(self, data.value.d.?);
     }
 
-    if (self.handler.any) |anyEvent| try anyEvent(self, payload);
+    if (mem.eql(u8, name, "MESSAGE_REACTION_ADD")) {
+        const data = try zjson.parse(GatewayPayload(Types.MessageReactionAdd), self.allocator, payload);
+
+        if (self.handler.message_reaction_add) |event| try event(self, data.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_CREATE")) {
+        const isAvailable =
+            try zjson.parse(GatewayPayload(struct { unavailable: ?bool }), self.allocator, payload);
+
+        if (isAvailable.value.d.?.unavailable == true) {
+            const guild = try zjson.parse(GatewayPayload(Types.Guild), self.allocator, payload);
+
+            if (self.handler.guild_create) |event| try event(self, guild.value.d.?);
+            return;
+        }
+
+        const guild = try zjson.parse(GatewayPayload(Types.UnavailableGuild), self.allocator, payload);
+
+        if (self.handler.guild_create_unavailable) |event| try event(self, guild.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_UPDATE")) {
+        const guild = try zjson.parse(GatewayPayload(Types.Guild), self.allocator, payload);
+
+        if (self.handler.guild_update) |event| try event(self, guild.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_DELETE")) {
+        const guild = try zjson.parse(GatewayPayload(Types.UnavailableGuild), self.allocator, payload);
+
+        if (self.handler.guild_delete) |event| try event(self, guild.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_MEMBER_ADD")) {
+        const guild_id = try zjson.parse(GatewayPayload(Types.GuildMemberAdd), self.allocator, payload);
+
+        if (self.handler.guild_member_add) |event| try event(self, guild_id.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_MEMBER_UPDATE")) {
+        const fields = try zjson.parse(GatewayPayload(Types.GuildMemberUpdate), self.allocator, payload);
+
+        if (self.handler.guild_member_update) |event| try event(self, fields.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_MEMBER_REMOVE")) {
+        const user = try zjson.parse(GatewayPayload(Types.GuildMemberRemove), self.allocator, payload);
+
+        if (self.handler.guild_member_remove) |event| try event(self, user.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_ROLE_CREATE")) {
+        const role = try zjson.parse(GatewayPayload(Types.GuildRoleCreate), self.allocator, payload);
+
+        if (self.handler.guild_role_create) |event| try event(self, role.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_ROLE_UPDATE")) {
+        const role = try zjson.parse(GatewayPayload(Types.GuildRoleUpdate), self.allocator, payload);
+
+        if (self.handler.guild_role_update) |event| try event(self, role.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_ROLE_DELETE")) {
+        const role_id = try zjson.parse(GatewayPayload(Types.GuildRoleDelete), self.allocator, payload);
+
+        if (self.handler.guild_role_delete) |event| try event(self, role_id.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_DELETE")) {
+        const guild = try zjson.parse(GatewayPayload(Types.UnavailableGuild), self.allocator, payload);
+
+        if (self.handler.guild_delete) |event| try event(self, guild.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_BAN_ADD")) {
+        const gba = try zjson.parse(GatewayPayload(Types.GuildBanAddRemove), self.allocator, payload);
+
+        if (self.handler.guild_ban_add) |event| try event(self, gba.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "GUILD_BAN_REMOVE")) {
+        const gbr = try zjson.parse(GatewayPayload(Types.GuildBanAddRemove), self.allocator, payload);
+
+        if (self.handler.guild_ban_remove) |event| try event(self, gbr.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "TYPING_START")) {
+        const data = try zjson.parse(GatewayPayload(Types.TypingStart), self.allocator, payload);
+
+        if (self.handler.typing_start) |event| try event(self, data.value.d.?);
+    }
+
+    if (mem.eql(u8, name, "USER_UPDATE")) {
+        const user = try zjson.parse(GatewayPayload(Types.User), self.allocator, payload);
+
+        if (self.handler.user_update) |event| try event(self, user.value.d.?);
+    }
+
+    if (self.handler.any) |anyEvent|
+        try anyEvent(self, payload);
 }

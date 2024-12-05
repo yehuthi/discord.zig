@@ -56,15 +56,15 @@ pub const ScheduledEventRecurrenceRule = struct {
     /// The spacing between the events, defined by `frequency`. For example, `frequency` of `Weekly` and an `interval` of `2` would be "every-other week"
     interval: isize,
     /// Set of specific days within a week for the event to recur on
-    by_weekday: []?ScheduledEventRecurrenceRuleWeekday,
+    by_weekday: ?[]ScheduledEventRecurrenceRuleWeekday,
     /// List of specific days within a specific week (1-5) to recur on
-    by_n_weekday: []?ScheduledEventRecurrenceRuleNWeekday,
+    by_n_weekday: ?[]ScheduledEventRecurrenceRuleNWeekday,
     /// Set of specific months to recur on
-    by_month: []?ScheduledEventRecurrenceRuleMonth,
+    by_month: ?[]ScheduledEventRecurrenceRuleMonth,
     /// Set of specific dates within a month to recur on
-    by_month_day: []?isize,
+    by_month_day: ?[]isize,
     /// Set of days within a year to recur on (1-364)
-    by_year_day: []?isize,
+    by_year_day: ?[]isize,
     /// The total amount of times that the event is allowed to recur before stopping
     count: ?isize,
 };

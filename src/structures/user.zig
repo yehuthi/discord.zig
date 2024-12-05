@@ -85,7 +85,7 @@ pub const Connection = struct {
     /// whether the connection is revoked
     revoked: ?bool,
     /// an array of partial server integrations
-    integrations: []?Partial(Integration),
+    integrations: ?[]Partial(Integration),
     /// whether the connection is verified
     verified: bool,
     /// whether friend sync is enabled for this connection

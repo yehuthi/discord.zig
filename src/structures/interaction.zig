@@ -151,7 +151,7 @@ pub const InteractionData = struct {
     /// The components if its a Modal Submit interaction.
     components: ?[]MessageComponent,
     /// The values chosen by the user.
-    values: []?[]const u8,
+    values: ?[][]const u8,
     /// The Id of the invoked command
     id: Snowflake,
     /// The name of the invoked command
@@ -179,7 +179,7 @@ pub const InteractionData = struct {
         attachments: Record(Attachment),
     },
     /// The params + values from the user
-    options: []?InteractionDataOption,
+    options: ?[]InteractionDataOption,
     /// The target id if this is a context menu command.
     target_id: ?Snowflake,
     /// the id of the guild the command is registered to
@@ -198,7 +198,7 @@ pub const InteractionDataOption = struct {
         integer: isize,
     },
     /// Present if this option is a group or subcommand
-    options: []?InteractionDataOption,
+    options: ?[]InteractionDataOption,
     /// `true` if this option is the currently focused option for autocomplete
     focused: ?bool,
 };

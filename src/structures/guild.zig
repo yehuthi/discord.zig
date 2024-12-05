@@ -101,15 +101,15 @@ pub const Guild = struct {
     /// When this guild was joined at
     joined_at: ?[]const u8,
     // States of members currently in voice channels; lacks the guild_id key
-    // voice_states: []?Omit(VoiceState, .{"guildId"}),
+    // voice_states: ?[]Omit(VoiceState, .{"guildId"}),
     /// Users in the guild
-    members: []?Member,
+    members: ?[]Member,
     /// Channels in the guild
-    channels: []?Channel,
+    channels: ?[]Channel,
     /// All active threads in the guild that the current user has permission to view
-    threads: []?Channel,
+    threads: ?[]Channel,
     /// Presences of the members in the guild, will only include non-offline members if the size is greater than large threshold
-    presences: []?Partial(PresenceUpdate),
+    presences: ?[]Partial(PresenceUpdate),
     /// Banner hash
     banner: ?[]const u8,
     ///The preferred locale of a Community guild; used in server discovery and notices from ; defaults to "en-US"
@@ -119,9 +119,9 @@ pub const Guild = struct {
     /// The welcome screen of a Community guild, shown to new members, returned in an Invite's guild object
     welcome_screen: ?WelcomeScreen,
     /// Stage instances in the guild
-    stage_instances: []?StageInstance,
+    stage_instances: ?[]StageInstance,
     /// Custom guild stickers
-    stickers: []?Sticker,
+    stickers: ?[]Sticker,
     ///The id of the channel where admins and moderators of Community guilds receive safety alerts from
     safety_alerts_channel_id: ?Snowflake,
 };

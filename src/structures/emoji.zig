@@ -8,7 +8,7 @@ pub const Emoji = struct {
     /// Emoji id
     id: ?Snowflake,
     /// Roles allowed to use this emoji
-    roles: []?[]const u8,
+    roles: ?[][]const u8,
     /// User that created this emoji
     user: ?User,
     /// Whether this emoji must be wrapped in colons
