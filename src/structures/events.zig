@@ -380,7 +380,11 @@ pub const GuildMemberUpdate = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove-all
-pub const MessageReactionRemoveAll = null;
+pub const MessageReactionRemoveAll = struct {
+    channel_id: Snowflake,
+    message_id: Snowflake,
+    guild_id: ?Snowflake,
+};
 
 /// https://discord.com/developers/docs/topics/gateway#guild-role-update
 pub const GuildRoleUpdate = struct {
@@ -400,7 +404,12 @@ pub const ScheduledEventUserAdd = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway#message-reaction-remove-emoji
-pub const MessageReactionRemoveEmoji = null;
+pub const MessageReactionRemoveEmoji = struct {
+    channel_id: Snowflake,
+    message_id: Snowflake,
+    guild_id: ?Snowflake,
+    emoji: Emoji,
+};
 
 /// https://discord.com/developers/docs/topics/gateway#guild-member-remove
 pub const GuildMemberRemove = struct {
