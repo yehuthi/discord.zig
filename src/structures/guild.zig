@@ -202,3 +202,182 @@ pub const GuildPreview = struct {
     /// Custom guild stickers
     stickers: []Sticker,
 };
+
+/// https://discord.com/developers/docs/resources/guild#create-guild
+pub const CreateGuild = struct {
+    /// Name of the guild (1-100 characters)
+    name: []const u8,
+    /// Base64 128x128 image for the guild icon
+    icon: ?[]const u8,
+    /// Verification level
+    verification_level: ?VerificationLevels,
+    /// Default message notification level
+    default_message_notifications: DefaultMessageNotificationLevels,
+    /// Explicit content filter level
+    explicit_content_filter: ?ExplicitContentFilterLevels,
+    /// New guild roles (first role is the everyone role)
+    roles: ?[]Role,
+    /// New guild's channels
+    channels: ?[]Partial(Channel),
+    /// Id for afk channel
+    afk_channel_id: ?[]const u8,
+    /// Afk timeout in seconds
+    afk_timeout: ?isize,
+    /// The id of the channel where guild notices such as welcome messages and boost events are posted
+    system_channel_id: ?[]const u8,
+    /// System channel flags
+    system_channel_flags: ?SystemChannelFlags,
+};
+
+/// https://discord.com/developers/docs/resources/guild#modify-guild
+pub const ModifyGuild = struct {
+    /// Guild name
+    name: ?[]const u8,
+    /// Verification level
+    verification_level: ?VerificationLevels,
+    /// Default message notification filter level
+    default_message_notifications: ?DefaultMessageNotificationLevels,
+    /// Explicit content filter level
+    explicit_content_filter: ?ExplicitContentFilterLevels,
+    /// Id for afk channel
+    afk_channel_id: ?Snowflake,
+    /// Afk timeout in seconds
+    afk_timeout: ?isize,
+    /// Base64 1024x1024 png/jpeg/gif image for the guild icon (can be animated gif when the server has the `ANIMATED_ICON` feature)
+    icon: ?[]const u8,
+    /// User id to transfer guild ownership to (must be owner)
+    owner_id: ?Snowflake,
+    /// Base64 16:9 png/jpeg image for the guild splash (when the server has `INVITE_SPLASH` fe
+    splash: ?[]const u8,
+    /// Base64 16:9 png/jpeg image for the guild discovery spash (when the server has the `DISCOVERABLE` feature)
+    discovery_splash: ?[]const u8,
+    /// Base64 16:9 png/jpeg image for the guild banner (when the server has BANNER feature)
+    banner: ?[]const u8,
+    /// The id of the channel where guild notices such as welcome messages and boost events are posted
+    system_channel_id: ?Snowflake,
+    /// System channel flags
+    system_channel_flags: ?SystemChannelFlags,
+    /// The id of the channel where Community guilds display rules and/or guidelines
+    rules_channel_id: ?Snowflake,
+    /// The id of the channel where admins and moderators of Community guilds receive notices from Discord
+    public_updates_channel_id: ?Snowflake,
+    /// The preferred locale of a Community guild used in server discovery and notices from Discord; defaults to "en-US"
+    preferred_locale: ?[]const u8,
+    /// Enabled guild features
+    features: ?[]GuildFeatures,
+    /// Whether the guild's boost progress bar should be enabled
+    premium_progress_bar_enabled: ?bool,
+};
+
+pub const CreateGuildBan = struct {
+    /// list of user ids to ban (max 200)
+    user_ids: []Snowflake,
+    /// number of seconds to delete messages for, between 0 and 604800 (7 days)
+    delete_message_seconds: ?isize,
+};
+
+/// https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+pub const GetGuildPruneCountQuery = struct {
+    /// Number of days to count prune for (1 or more), default: 7
+    days: ?isize,
+    /// Role(s) to include, default: none
+    include_roles: ?[]Snowflake,
+};
+
+/// https://discord.com/developers/docs/resources/guild#begin-guild-prune
+pub const BeginGuildPrune = struct {
+    /// Number of days to prune (1 or more), default: 7
+    days: ?isize,
+    /// Whether 'pruned' is returned, discouraged for large guilds, default: true
+    compute_prune_count: ?bool,
+    /// Role(s) ro include, default: none
+    include_roles: ?[]Snowflake,
+};
+
+/// https://discord.com/developers/docs/resources/guild#modify-guild-onboarding-json-params
+pub const ModifyGuildOnboarding = struct {
+    /// Prompts shown during onboarding and in customize community
+    prompts: []GuildOnboardingPrompt,
+    /// Channel IDs that members get opted into automatically
+    defaultChannelIds: []Snowflake,
+    /// Whether onboarding is enabled in the guild
+    enabled: bool,
+    /// Current mode of onboarding
+    mode: GuildOnboardingMode,
+};
+
+/// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-guild-onboarding-structure
+pub const GuildOnboarding = struct {
+    /// ID of the guild this onboarding is part of
+    guild_id: []const u8,
+    /// Prompts shown during onboarding and in customize community
+    prompts: []GuildOnboardingPrompt,
+    /// Channel IDs that members get opted into automatically
+    default_channel_ids: [][]const u8,
+    /// Whether onboarding is enabled in the guild
+    enabled: bool,
+    /// Current mode of onboarding
+    mode: GuildOnboardingMode,
+};
+
+/// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-prompt-structure
+pub const GuildOnboardingPrompt = struct {
+    /// ID of the prompt
+    id: Snowflake,
+    /// Type of prompt
+    type: GuildOnboardingPromptType,
+    /// Options available within the prompt
+    options: []GuildOnboardingPromptOption,
+    /// Title of the prompt
+    title: []const u8,
+    /// Indicates whether users are limited to selecting one option for the prompt
+    single_select: bool,
+    /// Indicates whether the prompt is required before a user completes the onboarding flow
+    required: bool,
+    /// Indicates whether the prompt is present in the onboarding flow. If `false`, the prompt will only appear in the Channels & Roles tab
+    in_onboarding: bool,
+};
+
+/// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
+pub const GuildOnboardingPromptOption = struct {
+    /// ID of the prompt option
+    id: Snowflake,
+    /// IDs for channels a member is added to when the option is selected
+    channel_ids: [][]const u8,
+    /// IDs for roles assigned to a member when the option is selected
+    role_ids: []Snowflake,
+    /// Emoji of the option
+    /// @remarks
+    /// When creating or updating a prompt option, the `emoji_id`, `emoji_name`, and `emoji_animated` fields must be used instead of the emoji object.
+    emoji: ?Emoji,
+    /// Emoji ID of the option
+    /// @remarks
+    /// When creating or updating a prompt option, the `emoji_id`, `emoji_name`, and `emoji_animated` fields must be used instead of the emoji object.
+    emoji_id: ?[]const u8,
+    /// Emoji name of the option
+    /// @remarks
+    /// When creating or updating a prompt option, the `emoji_id`, `emoji_name`, and `emoji_animated` fields must be used instead of the emoji object.
+    emoji_name: ?[]const u8,
+    /// Whether the emoji is animated
+    /// @remarks
+    /// When creating or updating a prompt option, the `emoji_id`, `emoji_name`, and `emoji_animated` fields must be used instead of the emoji object.
+    emoji_animated: bool,
+    /// Title of the option
+    title: []const u8,
+    /// Description of the option
+    description: ?[]const u8,
+};
+
+/// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-types
+pub const GuildOnboardingPromptType = enum {
+    MultipleChoice,
+    DropDown,
+};
+
+/// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-mode
+pub const GuildOnboardingMode = enum {
+    /// Counts only Default Channels towards constraints
+    OnboardingDefault,
+    /// Counts Default Channels and Questions towards constraints
+    OnboardingAdvanced,
+};

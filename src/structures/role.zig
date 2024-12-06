@@ -47,3 +47,39 @@ pub const RoleTags = struct {
     /// Tags with type ?bool represent booleans. They will be present and set to null if they are "true", and will be not present if they are "false".
     guild_connections: ?bool,
 };
+
+/// https://discord.com/developers/docs/resources/guild#create-guild-role
+pub const CreateGuildRole = struct {
+    /// Name of the role, max 100 characters, default: "new role"
+    name: ?[]const u8,
+    /// Bitwise value of the enabled/disabled permissions, default: everyone permissions in guild
+    permissions: ?[][]const u8,
+    /// RGB color value, default: 0
+    color: ?isize,
+    /// Whether the role should be displayed separately in the sidebar, default: false
+    hoist: ?bool,
+    /// Whether the role should be mentionable, default: false
+    mentionable: ?bool,
+    /// The role's unicode emoji (if the guild has the `ROLE_ICONS` feature)
+    unicode_emoji: ?[]const u8,
+    /// the role's icon image (if the guild has the `ROLE_ICONS` feature)
+    icon: ?[]const u8,
+};
+
+/// https://discord.com/developers/docs/resources/guild#modify-guild-role
+pub const ModifyGuildRole = struct {
+    /// Name of the role, max 100 characters, default: "new role"
+    name: ?[]const u8,
+    /// Bitwise value of the enabled/disabled permissions, default: everyone permissions in guild
+    permissions: ?[][]const u8,
+    /// RGB color value, default: 0
+    color: ?isize,
+    /// Whether the role should be displayed separately in the sidebar, default: false
+    hoist: ?bool,
+    /// Whether the role should be mentionable, default: false
+    mentionable: ?bool,
+    /// The role's unicode emoji (if the guild has the `ROLE_ICONS` feature)
+    unicodeEmoji: ?[]const u8,
+    /// the role's icon image (if the guild has the `ROLE_ICONS` feature)
+    icon: ?[]const u8,
+};

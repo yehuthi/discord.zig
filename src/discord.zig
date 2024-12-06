@@ -20,11 +20,13 @@ const Self = @This();
 
 allocator: mem.Allocator,
 sharder: Sharder,
+token: []const u8,
 
 pub fn init(allocator: mem.Allocator) Self {
     return .{
         .allocator = allocator,
         .sharder = undefined,
+        .token = undefined,
     };
 }
 
@@ -44,6 +46,7 @@ pub fn start(self: *Self, settings: struct {
     run: GatewayDispatchEvent(*Shard),
     log: Log,
 }) !void {
+    self.token = settings.token;
     var req = FetchReq.init(self.allocator, settings.token);
     defer req.deinit();
 

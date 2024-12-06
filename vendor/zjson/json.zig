@@ -928,6 +928,7 @@ pub const Error = std.mem.Allocator.Error || ParserError;
 /// but will someday
 pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Error!T {
     switch (@typeInfo(T)) {
+        .void => return {},
         .bool => {
             return value.bool;
         },
@@ -1101,7 +1102,7 @@ pub fn Owned(comptime Struct: type) type {
 
 /// parse any string containing a JSON object root `{...}`
 /// casts the value into `T`
-pub fn parse(comptime T: type, child_allocator: mem.Allocator, data: []const u8) (std.meta.IntToEnumError || ParserError)!Owned(T) {
+pub fn parse(comptime T: type, child_allocator: mem.Allocator, data: []const u8) ParserError!Owned(T) {
     var owned: Owned(T) = .{
         .arena = try child_allocator.create(std.heap.ArenaAllocator),
         .value = undefined,

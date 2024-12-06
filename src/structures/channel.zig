@@ -186,3 +186,15 @@ pub const DefaultReactionEmoji = struct {
     /// The unicode character of the emoji
     emoji_name: ?[]const u8,
 };
+
+/// https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions
+pub const ModifyGuildChannelPositions = struct {
+    /// Channel id
+    id: Snowflake,
+    /// Sorting position of the channel (channels with the same position are sorted by id)
+    position: ?isize,
+    /// Syncs the permission overwrites with the new parent, if moving to a new category
+    lock_positions: ?bool,
+    /// The new parent ID for the channel that is moved
+    parent_id: ?Snowflake,
+};
