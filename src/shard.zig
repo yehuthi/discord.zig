@@ -200,7 +200,6 @@ inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
         .host = url,
     });
 
-    // maybe change this to a buffer
     var buf: [0x100]u8 = undefined;
     const host = try std.fmt.bufPrint(&buf, "host: {s}", .{url});
 
@@ -2204,12 +2203,11 @@ pub fn leaveGuild(self: *Self, guild_id: Snowflake) RequestFailedError!void {
 
 /// Create a new DM channel with a user.
 /// Returns a DM channel object (if one already exists, it will be returned instead).
-pub fn Dm(self: *Self, whom: Snowflake) RequestFailedError!zjson.Owned(Types.Channel) {
+pub fn dm(self: *Self, whom: Snowflake) RequestFailedError!zjson.Owned(Types.Channel) {
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
-    const dm = try req.post(Types.Channel, "/users/@me/channels", .{ .recipient_id = whom });
-    return dm;
+    return req.post(Types.Channel, "/users/@me/channels", .{ .recipient_id = whom });
 }
 
 /// Create a new group DM channel with multiple users.
@@ -2240,4 +2238,203 @@ pub fn fetchMyApplicationConnection(self: *Self) RequestFailedError!void {
 pub fn updateMyApplicationConnection(self: *Self) RequestFailedError!void {
     _ = self;
     @panic("unimplemented\n");
+}
+
+// start methods for emojis
+
+/// Returns a list of emoji objects for the given guild.
+/// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+pub fn fetchEmojis(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const emojis = try req.get([]Types.Emoji, path);
+    return emojis;
+}
+
+/// Returns an emoji object for the given guild and emoji IDs.
+/// Includes the `user` field if the bot has the `MANAGE_GUILD_EXPRESSIONS` permission, or if the bot created the emoji and has the the `CREATE_GUILD_EXPRESSIONS` permission.
+pub fn fetchEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const emoji = try req.get(Types.Emoji, path);
+    return emoji;
+}
+
+/// Create a new emoji for the guild.
+/// Requires the `CREATE_GUILD_EXPRESSIONS` permission.
+/// Returns the new emoji object on success.
+/// Fires a Guild Emojis Update Gateway event.
+pub fn createEmoji(self: *Self, guild_id: Snowflake, emoji: Types.CreateGuildEmoji) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.post(Types.Emoji, path, emoji);
+}
+
+/// Modify the given emoji.
+/// For emojis created by the current user, requires either the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+/// For other emojis, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
+/// Returns the updated emoji object on success.
+/// Fires a Guild Emojis Update Gateway event.
+pub fn editEmoji(self: *Self, guild_id: Snowflake, emoji: Types.ModifyGuildEmoji) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.patch(Types.Emoji, path, emoji);
+}
+
+/// Delete the given emoji.
+/// For emojis created by the current user, requires either the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+/// For other emojis, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
+/// Returns 204 No Content on success.
+/// Fires a Guild Emojis Update Gateway event.
+pub fn deleteEmoji(self: *Self, guild_id: Snowflake, emoji_id: Snowflake) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/emojis/{d}", .{ guild_id.into(), emoji_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.delete(path);
+}
+
+/// Returns an object containing a list of emoji objects for the given application under the `items` key.
+/// Includes a `user` object for the team member that uploaded the emoji from the app's settings, or for the bot user if uploaded using the API.
+pub fn fetchApplicationEmojis(self: *Self, application_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const emojis = try req.get([]Types.Emoji, path);
+    return emojis;
+}
+
+/// Returns an emoji object for the given application and emoji IDs. Includes the user field.
+pub fn fetchApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const emoji = try req.get(Types.Emoji, path);
+    return emoji;
+}
+
+/// Create a new emoji for the application. Returns the new emoji object on success.
+pub fn createApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.CreateGuildEmoji) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.post(Types.Emoji, path, emoji);
+}
+
+/// Modify the given emoji. Returns the updated emoji object on success.
+pub fn editApplicationEmoji(self: *Self, application_id: Snowflake, emoji: Types.ModifyGuildEmoji) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.patch(Types.Emoji, path, emoji);
+}
+
+/// Delete the given emoji. Returns 204 No Content on success.
+pub fn deleteApplicationEmoji(self: *Self, application_id: Snowflake, emoji_id: Snowflake) RequestFailedError!zjson.Owned(Types.Emoji) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/emojis/{d}", .{ application_id.into(), emoji_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.delete(path);
+}
+
+// start invites
+
+/// Returns an invite object for the given code.
+pub fn fetchInvite(self: *Self, code: []const u8) RequestFailedError!zjson.Owned(Types.Invite) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.get(Types.Invite, path);
+}
+
+/// Delete an invite.
+/// Requires the `MANAGE_CHANNELS` permission on the channel this invite belongs to, or `MANAGE_GUILD` to remove any invite across the guild.
+/// Returns an invite object on success.
+/// Fires an Invite Delete Gateway event.
+pub fn deleteInvite(self: *Self, code: []const u8) RequestFailedError!void {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.delete(path);
+}
+
+// poll stuff
+
+/// Get a list of users that voted for this specific answer.
+pub fn fetchAnswerVoters(
+    self: *Self,
+    channel_id: Snowflake,
+    poll_id: Snowflake,
+    answer_id: Snowflake,
+) RequestFailedError!zjson.Owner([]Types.User) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/channels/{d}/polls/{d}/answers/{d}", .{
+        channel_id.into(),
+        poll_id.into(),
+        answer_id.into(),
+    });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const voters = try req.get([]Types.User, path);
+    return voters;
+}
+
+/// Immediately ends the poll.
+/// You cannot end polls from other users.
+///
+/// Returns a message object. Fires a Message Update Gateway event.
+pub fn endPoll(
+    self: *Self,
+    channel_id: Snowflake,
+    poll_id: Snowflake,
+) RequestFailedError!zjson.Owned(Types.Message) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/channels/{d}/polls/{d}/expire", .{ channel_id.into(), poll_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const msg = try req.post(Types.Message, path);
+    return msg;
 }

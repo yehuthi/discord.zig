@@ -52,8 +52,8 @@ pub const Snowflake = enum(u64) {
         unreachable;
     }
 
-    pub fn format(self: Snowflake) ![]const u8 {
+    pub fn format(self: Snowflake, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         var buf: [256]u8 = undefined;
-        return std.fmt.bufPrint(&buf, "{d}\n", .{self.into()});
+        try writer.writeAll(try std.fmt.bufPrint(&buf, "{d}\n", .{self.into()}));
     }
 };

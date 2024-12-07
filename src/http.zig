@@ -40,20 +40,55 @@ pub const FetchReq = struct {
     token: []const u8,
     client: http.Client,
     body: std.ArrayList(u8),
+    /// internal
+    extra_headers: std.ArrayList(http.Header),
+    query_params: std.StringArrayHashMap([]const u8),
 
     pub fn init(allocator: mem.Allocator, token: []const u8) FetchReq {
         const client = http.Client{ .allocator = allocator };
         return FetchReq{
             .allocator = allocator,
             .client = client,
-            .body = std.ArrayList(u8).init(allocator),
             .token = token,
+            .body = std.ArrayList(u8).init(allocator),
+            .extra_headers = std.ArrayList(http.Header).init(allocator),
+            .query_params = std.StringArrayHashMap([]const u8).init(allocator),
         };
     }
 
     pub fn deinit(self: *FetchReq) void {
         self.client.deinit();
         self.body.deinit();
+    }
+
+    pub fn addHeader(self: *FetchReq, name: []const u8, value: []const u8) !void {
+        try self.extra_headers.append(http.Header{ .name = name, .value = value });
+    }
+
+    pub fn addQueryParam(self: *FetchReq, name: []const u8, value: []const u8) !void {
+        try self.query_params.put(name, value);
+    }
+
+    fn formatQueryParams(self: *FetchReq) ![]const u8 {
+        var query = std.ArrayListUnmanaged(u8){};
+        const writer = query.writer(self.allocator);
+
+        if (self.query_params.count() == 0)
+            return "";
+
+        _ = try writer.write("?");
+        var it = self.query_params.iterator();
+        while (it.next()) |kv| {
+            _ = try writer.write(kv.key_ptr.*);
+            _ = try writer.write("=");
+            _ = try writer.write(kv.value_ptr.*);
+            if (it.next()) |_| {
+                try writer.writeByte('&');
+                continue;
+            }
+        }
+
+        return query.toOwnedSlice(self.allocator);
     }
 
     pub fn get(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
@@ -207,16 +242,16 @@ pub const FetchReq = struct {
         to_post: ?[]const u8,
     ) MakeRequestError!http.Client.FetchResult {
         var buf: [256]u8 = undefined;
-        const constructed = try std.fmt.bufPrint(&buf, "{s}{s}", .{ BASE_URL, path });
+        const constructed = try std.fmt.bufPrint(&buf, "{s}{s}{s}", .{ BASE_URL, path, try self.formatQueryParams() });
+
+        try self.extra_headers.append(http.Header{ .name = "Accept", .value = "application/json" });
+        try self.extra_headers.append(http.Header{ .name = "Content-Type", .value = "application/json" });
+        try self.extra_headers.append(http.Header{ .name = "Authorization", .value = self.token });
 
         var fetch_options = http.Client.FetchOptions{
             .location = http.Client.FetchOptions.Location{ .url = constructed },
-            .extra_headers = &[_]http.Header{
-                http.Header{ .name = "Accept", .value = "application/json" },
-                http.Header{ .name = "Content-Type", .value = "application/json" },
-                http.Header{ .name = "Authorization", .value = self.token },
-            },
             .method = method,
+            .extra_headers = try self.extra_headers.toOwnedSlice(),
             .response_storage = .{ .dynamic = &self.body },
         };
 
@@ -271,13 +306,14 @@ pub const FetchReq = struct {
         };
 
         var uri_buf: [256]u8 = undefined;
-        const uri = try std.Uri.parse(try std.fmt.bufPrint(&uri_buf, "{s}{s}", .{ BASE_URL, path }));
+        const uri = try std.Uri.parse(try std.fmt.bufPrint(&uri_buf, "{s}{s}{s}", .{ BASE_URL, path, try self.formatQueryParams() }));
 
         var server_header_buffer: [16 * 1024]u8 = undefined;
         var request = try self.client.open(method, uri, .{
             .keep_alive = false,
             .server_header_buffer = &server_header_buffer,
             .headers = headers,
+            .extra_headers = try self.extra_headers.toOwnedSlice(),
         });
         defer request.deinit();
         request.transfer_encoding = .{ .content_length = body.len };

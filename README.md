@@ -71,3 +71,27 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 | voice_channel_effect_send              | ❌      |
 | voice_state_update                     | ❌      |
 | voice_server_update                    | ❌      |
+
+## http methods missing
+| Endpoint                               | Support |
+|----------------------------------------|---------|
+| Application related                    | ❌      |
+| Audit log                              | ❌      |
+| Automod                                | ❌      |
+| Channel related                        | ✅      |
+| Emoji related                          | ✅      |
+| Entitlement related                    | ❌      |
+| Guild related                          | ✅      |
+| Guild Scheduled Event related          | ❌      |
+| Guild template related                 | ❌      |
+| Invite related                         | ✅      |
+| Message related                        | ✅      |
+| Poll related                           | ✅      |
+| SKU related                            | ❌      |
+| Soundboard related                     | ❌      |
+| Stage Instance related                 | ❌      |
+| Sticker related                        | ❌      |
+| Subscription related                   | ❌      |
+| User related                           | ✅      |
+| Voice related                          | ❌      |
+| Webhook related                        | ❌      |
