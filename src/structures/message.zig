@@ -4,6 +4,7 @@ const Member = @import("member.zig").Member;
 const Attachment = @import("attachment.zig").Attachment;
 const Application = @import("application.zig").Application;
 const Embed = @import("embed.zig").Embed;
+const AllowedMentionTypes = @import("shared.zig").AllowedMentionsTypes;
 const PremiumTypes = @import("shared.zig").PremiumTypes;
 const InteractionTypes = @import("shared.zig").InteractionTypes;
 const StickerTypes = @import("shared.zig").StickerTypes;
@@ -341,4 +342,15 @@ pub const StickerPack = struct {
     description: []const u8,
     /// id of the sticker pack's [banner image](https://discord.com/developers/docs/reference#image-formatting)
     banner_asset_id: ?Snowflake,
+};
+
+pub const AllowedMentions = struct {
+    /// An array of allowed mention types to parse from the content.
+    parse: []AllowedMentionTypes,
+    /// Array of role_ids to mention (Max size of 100)
+    roles: []Snowflake,
+    /// Array of user_ids to mention (Max size of 100)
+    users: []Snowflake,
+    /// For replies, whether to mention the author of the message being replied to (default false)
+    replied_user: ?bool,
 };

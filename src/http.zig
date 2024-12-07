@@ -135,7 +135,61 @@ pub const FetchReq = struct {
         return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn makeRequest(self: *FetchReq, method: http.Method, path: []const u8, to_post: ?[]const u8) MakeRequestError!http.Client.FetchResult {
+    pub fn post2(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
+        const result = try self.makeRequest(.POST, path, null);
+
+        if (result.status != .ok)
+            return error.FailedRequest;
+
+        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+    }
+
+    pub fn post3(
+        self: *FetchReq,
+        comptime T: type,
+        path: []const u8,
+        object: anytype,
+        files: []const FileData,
+    ) !void {
+        var buf: [4096]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&buf);
+        var string = std.ArrayList(u8).init(fba.allocator());
+        errdefer string.deinit();
+
+        try json.stringify(object, .{}, string.writer());
+        const result = try self.makeRequestWithFiles(.POST, path, try string.toOwnedSlice(), files);
+
+        _ = T;
+        if (result.status != .ok)
+            return error.FailedRequest;
+    }
+
+    pub fn post4(self: *FetchReq, path: []const u8, object: anytype) !void {
+        var buf: [4096]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&buf);
+        var string = std.ArrayList(u8).init(fba.allocator());
+        errdefer string.deinit();
+
+        try json.stringify(object, .{}, string.writer());
+        const result = try self.makeRequest(.POST, path, try string.toOwnedSlice());
+
+        if (result.status != .no_content)
+            return error.FailedRequest;
+    }
+
+    pub fn post5(self: *FetchReq, path: []const u8) !void {
+        const result = try self.makeRequest(.POST, path, null);
+
+        if (result.status != .no_content)
+            return error.FailedRequest;
+    }
+
+    pub fn makeRequest(
+        self: *FetchReq,
+        method: http.Method,
+        path: []const u8,
+        to_post: ?[]const u8,
+    ) MakeRequestError!http.Client.FetchResult {
         var buf: [256]u8 = undefined;
         const constructed = try std.fmt.bufPrint(&buf, "{s}{s}", .{ BASE_URL, path });
 
@@ -157,4 +211,133 @@ pub const FetchReq = struct {
         const res = try self.client.fetch(fetch_options);
         return res;
     }
+
+    pub fn makeRequestWithFiles(
+        self: *FetchReq,
+        method: http.Method,
+        path: []const u8,
+        to_post: []const u8,
+        files: []const FileData,
+    ) !http.Client.FetchResult {
+        var form_fields = try std.ArrayList(FormField).initCapacity(self.allocator, files.len + 1);
+        errdefer form_fields.deinit();
+
+        for (files, 0..) |file, i|
+            form_fields.appendAssumeCapacity(.{
+                .name = try std.fmt.allocPrint(self.allocator, "files[{d}]", .{i}),
+                .filename = file.filename,
+                .value = file.value,
+                .content_type = .{ .override = try file.type.string() },
+            });
+
+        form_fields.appendAssumeCapacity(.{
+            .name = "payload_json",
+            .value = to_post,
+            .content_type = .{ .override = "application/json" },
+        });
+
+        var boundary: [64 + 3]u8 = undefined;
+        std.debug.assert((std.fmt.bufPrint(
+            &boundary,
+            "{x:0>16}-{x:0>16}-{x:0>16}-{x:0>16}",
+            .{ std.crypto.random.int(u64), std.crypto.random.int(u64), std.crypto.random.int(u64), std.crypto.random.int(u64) },
+        ) catch unreachable).len == boundary.len);
+
+        const body = try createMultiPartFormDataBody(
+            self.allocator,
+            &boundary,
+            try form_fields.toOwnedSlice(),
+        );
+
+        const headers: std.http.Client.Request.Headers = .{
+            .content_type = .{ .override = try std.fmt.allocPrint(self.allocator, "multipart/form-data; boundary={s}", .{boundary}) },
+            .authorization = .{ .override = self.token },
+        };
+
+        var uri_buf: [256]u8 = undefined;
+        const uri = try std.Uri.parse(try std.fmt.bufPrint(&uri_buf, "{s}{s}", .{ BASE_URL, path }));
+
+        var server_header_buffer: [16 * 1024]u8 = undefined;
+        var request = try self.client.open(method, uri, .{
+            .keep_alive = false,
+            .server_header_buffer = &server_header_buffer,
+            .headers = headers,
+        });
+        defer request.deinit();
+        request.transfer_encoding = .{ .content_length = body.len };
+
+        try request.send();
+        try request.writeAll(body);
+
+        try request.finish();
+        try request.wait();
+
+        try request.reader().readAllArrayList(&self.body, 2 * 1024 * 1024);
+
+        if (request.response.status.class() == .success)
+            return .{ .status = request.response.status };
+        return error.FailedRequest; // TODO: make an Either type lol
+    }
 };
+
+pub const FileData = struct {
+    filename: []const u8,
+    value: []const u8,
+    type: union(enum) {
+        jpg,
+        jpeg,
+        png,
+        webp,
+        gif,
+        pub fn string(self: @This()) ![]const u8 {
+            var buf: [256]u8 = undefined;
+            return std.fmt.bufPrint(&buf, "image/{s}", .{@tagName(self)});
+        }
+    },
+};
+
+pub const FormField = struct {
+    name: []const u8,
+    filename: ?[]const u8 = null,
+    content_type: std.http.Client.Request.Headers.Value = .default,
+    value: []const u8,
+};
+
+fn createMultiPartFormDataBody(
+    allocator: std.mem.Allocator,
+    boundary: []const u8,
+    fields: []const FormField,
+) error{OutOfMemory}![]const u8 {
+    var body: std.ArrayListUnmanaged(u8) = .{};
+    errdefer body.deinit(allocator);
+    const writer = body.writer(allocator);
+
+    for (fields) |field| {
+        try writer.print("--{s}\r\n", .{boundary});
+
+        if (field.filename) |filename| {
+            try writer.print("Content-Disposition: form-data; name=\"{s}\"; filename=\"{s}\"\r\n", .{ field.name, filename });
+        } else {
+            try writer.print("Content-Disposition: form-data; name=\"{s}\"\r\n", .{field.name});
+        }
+
+        switch (field.content_type) {
+            .default => {
+                if (field.filename != null) {
+                    try writer.writeAll("Content-Type: application/octet-stream\r\n");
+                }
+            },
+            .omit => {},
+            .override => |content_type| {
+                try writer.print("Content-Type: {s}\r\n", .{content_type});
+            },
+        }
+
+        try writer.writeAll("\r\n");
+        try writer.writeAll(field.value);
+        try writer.writeAll("\r\n");
+    }
+    try writer.print("--{s}--\r\n", .{boundary});
+
+    return try body.toOwnedSlice(allocator);
+}

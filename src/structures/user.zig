@@ -142,3 +142,12 @@ pub const ApplicationRoleConnection = struct {
     /// object mapping application role connection metadata keys to their stringified value (max 100 characters) for the user on the platform a bot has connected
     metadata: []Record([]const u8),
 };
+
+pub const ModifyCurrentUser = struct {
+    /// user's username, if changed may cause the user's discriminator to be randomized.
+    username: ?[]const u8,
+    /// if passed, modifies the user's avatar
+    avatar: ?[]const u8,
+    /// if passed, modifies the user's banner
+    banner: ?[]const u8,
+};

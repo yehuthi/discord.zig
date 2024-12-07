@@ -19,38 +19,82 @@ pub const PremiumTypes = enum {
 
 /// https://discord.com/developers/docs/resources/user#user-object-user-flags
 pub const UserFlags = packed struct {
-    pub fn toRaw(self: UserFlags) u32 {
+    pub fn toRaw(self: UserFlags) u34 {
         return @bitCast(self);
     }
 
-    pub fn fromRaw(raw: u32) UserFlags {
+    pub fn fromRaw(raw: u34) UserFlags {
         return @bitCast(raw);
     }
 
     pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u32));
+        return @bitCast(value.number.cast(u34));
     }
 
     DiscordEmployee: bool = false,
     PartneredServerOwner: bool = false,
     HypeSquadEventsMember: bool = false,
     BugHunterLevel1: bool = false,
-    _pad: u3 = 0,
+    MfaSms: bool = false,
+    PremiumPromoDismissed: bool = false,
     HouseBravery: bool = false,
     HouseBrilliance: bool = false,
     HouseBalance: bool = false,
     EarlySupporter: bool = false,
     TeamUser: bool = false,
-    _pad2: u4 = 0,
+    PartnerOrVerificationApplication: bool = false,
+    System: bool = false,
+    HasUnreadUrgentMessages: bool = false,
     BugHunterLevel2: bool = false,
-    _pad3: u1 = 0,
+    UnderageDeleted: bool = false,
     VerifiedBot: bool = false,
     EarlyVerifiedBotDeveloper: bool = false,
     DiscordCertifiedModerator: bool = false,
     BotHttpInteractions: bool = false,
-    _pad4: u3 = 0,
+    Spammer: bool = false,
+    DisablePremium: bool = false,
     ActiveDeveloper: bool = false,
-    _pad5: u6 = 0,
+    _pad: u10 = 0,
+    Quarantined: bool = false,
+};
+
+pub const PremiumUsageFlags = packed struct {
+    pub fn toRaw(self: PremiumUsageFlags) u8 {
+        return @bitCast(self);
+    }
+
+    pub fn fromRaw(raw: u8) PremiumUsageFlags {
+        return @bitCast(raw);
+    }
+
+    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+        return @bitCast(value.number.cast(u8));
+    }
+
+    PremiumDiscriminator: bool = false,
+    AnimatedAvatar: bool = false,
+    ProfileBanner: bool = false,
+    _pad: u5 = 0,
+};
+
+pub const PurchasedFlags = packed struct {
+    pub fn toRaw(self: PurchasedFlags) u8 {
+        return @bitCast(self);
+    }
+
+    pub fn fromRaw(raw: u8) PurchasedFlags {
+        return @bitCast(raw);
+    }
+
+    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+        return @bitCast(value.number.cast(u8));
+    }
+
+    NitroClassic: bool = false,
+    Nitro: bool = false,
+    GuildBoost: bool = false,
+    NitroBasic: bool = false,
+    _pad: u4 = 0,
 };
 
 pub const MemberFlags = packed struct {

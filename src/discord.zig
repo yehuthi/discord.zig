@@ -10,6 +10,7 @@ pub const Sharder = @import("core.zig");
 const SessionOptions = Sharder.SessionOptions;
 
 pub const FetchReq = @import("http.zig").FetchReq;
+pub const FileData = @import("http.zig").FileData;
 
 const std = @import("std");
 const mem = std.mem;

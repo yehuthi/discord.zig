@@ -8,6 +8,10 @@ pub const Snowflake = enum(u64) {
         return @intFromEnum(self);
     }
 
+    pub fn from(int: u64) Snowflake {
+        return @enumFromInt(int);
+    }
+
     pub fn fromMaybe(raw: ?[]const u8) std.fmt.ParseIntError!?Snowflake {
         if (raw) |id| return @enumFromInt(try std.fmt.parseInt(u64, id, 10));
         return null;
@@ -28,7 +32,12 @@ pub const Snowflake = enum(u64) {
 
     pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (value.is(.string))
-            return Snowflake.fromRaw(value.string) catch unreachable;
+            return Snowflake.fromRaw(value.string) catch std.debug.panic("invalid snowflake: {s}\n", .{value.string});
         unreachable;
+    }
+
+    pub fn format(self: Snowflake) ![]const u8 {
+        var buf: [256]u8 = undefined;
+        return std.fmt.bufPrint(&buf, "{d}\n", .{self.into()});
     }
 };

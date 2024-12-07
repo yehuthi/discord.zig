@@ -17,15 +17,15 @@ fn message_create(session: *Shard, message: Discord.Message) !void {
     std.debug.print("captured: {?s} send by {s}\n", .{ message.content, message.author.username });
 
     if (message.content) |mc| if (std.ascii.eqlIgnoreCase(mc, "!hi")) {
-        const payload: Discord.Partial(Discord.CreateMessage) = .{
+        const msg = try session.sendMessage(message.channel_id, .{
             .content = "discord.zig best library",
-        };
-        _ = try session.sendMessage(message.channel_id, payload);
+        });
+        defer msg.deinit();
     };
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 9999 }){};
     var handler = Discord.init(gpa.allocator());
     try handler.start(.{
         .token = std.posix.getenv("DISCORD_TOKEN").?,

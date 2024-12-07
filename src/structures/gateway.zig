@@ -1,6 +1,7 @@
 const User = @import("user.zig").User;
 const Snowflake = @import("snowflake.zig").Snowflake;
 const ActivityTypes = @import("shared.zig").ActivityTypes;
+const Partial = @import("partial.zig").Partial;
 
 /// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 pub const GetGatewayBot = struct {
@@ -34,7 +35,7 @@ pub const PresenceUpdate = struct {
         offline,
     },
     /// The user presence is being updated for
-    user: User,
+    user: Partial(User),
     /// id of the guild
     guild_id: Snowflake,
     /// User's current activities
@@ -64,7 +65,8 @@ pub const Activity = struct {
     /// Unix timestamps for start and/or end of the game
     timestamps: ?ActivityTimestamps,
     /// Application id for the game
-    application_id: ?Snowflake,
+    /// a string
+    application_id: ?[]const u8,
     /// The emoji used for a custom status
     emoji: ?ActivityEmoji,
     /// Information for the current party of the player
@@ -80,21 +82,25 @@ pub const Activity = struct {
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object
 pub const ActivityInstance = struct {
     /// Application ID
-    application_id: Snowflake,
+    /// a string
+    application_id: []const u8,
     /// Activity Instance ID
-    instance_id: Snowflake,
+    /// a string
+    instance_id: []const u8,
     /// Unique identifier for the launch
-    launch_id: Snowflake,
+    /// a string
+    launch_id: []const u8,
     /// The Location the instance is runnning in
     location: ActivityLocation,
     /// The IDs of the Users currently connected to the instance
-    users: [][]const u8,
+    users: []Snowflake,
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-object
 pub const ActivityLocation = struct {
     /// The unique identifier for the location
-    id: Snowflake,
+    /// a string
+    id: []const u8,
     /// Enum describing kind of location
     kind: ActivityLocationKind,
     /// The id of the Channel
@@ -136,7 +142,8 @@ pub const ActivityEmoji = struct {
     /// Whether this emoji is animated
     animated: ?bool,
     /// The id of the emoji
-    id: ?Snowflake,
+    /// a string
+    id: ?[]const u8,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#activity-object-activity-party

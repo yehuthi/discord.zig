@@ -1,5 +1,12 @@
 const Snowflake = @import("snowflake.zig").Snowflake;
 const Channel = @import("channel.zig").Channel;
+const ChannelTypes = @import("shared.zig").ChannelTypes;
+const MessageFlags = @import("shared.zig").MessageFlags;
+const Embed = @import("embed.zig").Embed;
+const Partial = @import("partial.zig").Partial;
+const Attachment = @import("attachment.zig").Attachment;
+const AllowedMentions = @import("message.zig").AllowedMentions;
+const MessageComponent = @import("message.zig").MessageComponent;
 
 pub const ThreadMetadata = struct {
     /// Whether the thread is archived
@@ -52,4 +59,60 @@ pub const ThreadListSync = struct {
     threads: []Channel,
     /// All thread member objects from the synced threads for the current user, indicating which threads the current user has been added to
     members: []ThreadMember,
+};
+
+/// https://discord.com/developers/docs/resources/channel#start-thread-from-message
+pub const StartThreadFromMessage = struct {
+    /// 1-100 character thread name
+    name: []const u8,
+    /// Duration in minutes to automatically archive the thread after recent activity
+    auto_archive_duration: ?isize,
+    /// Amount of seconds a user has to wait before sending another message (0-21600)
+    rate_limit_per_user: ?isize,
+};
+
+/// https://discord.com/developers/docs/resources/channel#start-thread-without-message
+pub const StartThreadWithoutMessage = struct {
+    /// 1-100 character thread name,
+    name: []const u8,
+    /// Duration in minutes to automatically archive the thread after recent activity,
+    auto_archive_duration: isize,
+    /// Amount of seconds a user has to wait before sending another message (0-21600),
+    rateLimitPerUser: ?isize,
+    /// the type of thread to create,
+    /// may only be AnnouncementThread, PublicThread, or PrivateThread
+    type: ChannelTypes,
+    /// whether non-moderators can add other non-moderators to a thread; only available when creating a private thread,
+    invitable: ?bool,
+};
+
+/// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-or-media-channel-forum-and-media-thread-message-params-object
+pub const CreateForumAndMediaThreadMessage = struct {
+    /// Message contents (up to 2000 characters)
+    content: ?[]const u8,
+    /// Up to 10 rich embeds (up to 6000 characters)
+    embeds: ?[]Embed,
+    /// Allowed mentions for the message
+    allowed_mentions: ?AllowedMentions,
+    /// Components to include with the message
+    components: ?[]MessageComponent,
+    /// IDs of up to 3 stickers in the server to send in the message
+    sticker_ids: ?[]Snowflake,
+    /// Attachment objects with filename and description. See Uploading Files
+    attachments: ?[]Partial(Attachment),
+    /// Message flags combined as a bitfield (only SUPPRESS_EMBEDS and SUPPRESS_NOTIFICATIONS can be set)
+    flags: ?MessageFlags,
+};
+
+pub const StartThreadInForumOrMediaChannel = struct {
+    /// 1-100 character channel name
+    name: []const u8,
+    /// Duration in minutes to automatically archive the thread after recent activity, can be set to: 60, 1440, 4320, 10080
+    auto_archive_duration: ?isize,
+    /// Amount of seconds a user has to wait before sending another message (0-21600)
+    rate_limit_per_user: ?isize,
+    /// Contents of the first message in the forum/media thread
+    message: CreateForumAndMediaThreadMessage,
+    /// The IDs of the set of tags that have been applied to a thread in a GUILD_FORUM or a GUILD_MEDIA channel
+    applied_tags: ?[]Snowflake,
 };

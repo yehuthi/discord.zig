@@ -616,6 +616,7 @@ pub const CreateGuildChannel = struct {
 };
 
 pub const CreateMessage = struct {
+    attachments: []Partial(Attachment),
     /// The message contents (up to 2000 characters)
     content: ?[]const u8,
     /// Can be used to verify a message was sent (up to 25 characters). Value will appear in the Message Create event.

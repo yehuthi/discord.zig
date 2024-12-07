@@ -5,6 +5,7 @@ const AllowedMentionsTypes = @import("shared.zig").AllowedMentionsTypes;
 const ChannelTypes = @import("shared.zig").ChannelTypes;
 const OverwriteTypes = @import("shared.zig").OverwriteTypes;
 const ChannelFlags = @import("shared.zig").ChannelFlags;
+const TargetTypes = @import("shared.zig").TargetTypes;
 const VideoQualityModes = @import("shared.zig").VideoQualityModes;
 const SortOrderTypes = @import("shared.zig").SortOrderTypes;
 const User = @import("user.zig").User;
@@ -197,4 +198,21 @@ pub const ModifyGuildChannelPositions = struct {
     lock_positions: ?bool,
     /// The new parent ID for the channel that is moved
     parent_id: ?Snowflake,
+};
+
+pub const CreateChannelInvite = struct {
+    /// Duration of invite in seconds before expiry, or 0 for never. Between 0 and 604800 (7 days). Default: 86400 (24 hours)
+    max_age: ?isize,
+    /// Max number of users or 0 for unlimited. Between 0 and 100. Default: 0
+    max_uses: ?isize,
+    /// Whether this invite only grants temporary membership. Default: false
+    temporary: ?bool,
+    /// If true, don't try to reuse similar invite (useful for creating many unique one time use invites). Default: false
+    unique: ?bool,
+    /// The type of target for this voice channel invite
+    target_type: ?TargetTypes,
+    /// The id of the user whose stream to display for this invite, required if `target_type` is 1, the user must be streaming in the channel
+    target_user_id: ?Snowflake,
+    /// The id of the embedded application to open for this invite, required if `target_type` is 2, the application must have the `EMBEDDED` flag
+    target_application_id: ?Snowflake,
 };
