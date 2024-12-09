@@ -107,3 +107,57 @@ pub const InstallParams = struct {
     /// Permissions to request for the bot role
     permissions: []const u8,
 };
+
+pub const ModifyApplication = struct {
+    /// Default custom authorization URL for the app, if enabled
+    custom_install_url: ?[]const u8,
+    /// Description of the app
+    description: ?[]const u8,
+    /// Role connection verification URL for the app
+    role_connections_verification_url: ?[]const u8,
+    /// Settings for the app's default in-app authorization link, if enabled
+    install_params: ?InstallParams,
+    /// Default scopes and permissions for each supported installation context.
+    integration_types_config: ?ApplicationIntegrationType,
+    /// App's public flags
+    /// @remarks
+    /// Only limited intent flags (`GATEWAY_PRESENCE_LIMITED`, `GATEWAY_GUILD_MEMBERS_LIMITED`, and `GATEWAY_MESSAGE_CONTENT_LIMITED`) can be updated via the API.
+    flags: ?ApplicationFlags,
+    /// Icon for the app
+    icon: ?[]const u8,
+    /// Default rich presence invite cover image for the app
+    cover_image: ?[]const u8,
+    /// Interactions endpoint URL for the app
+    /// @remarks
+    /// To update an Interactions endpoint URL via the API, the URL must be valid
+    interaction_endpoint_url: ?[]const u8,
+    /// List of tags describing the content and functionality of the app (max of 20 characters per tag)
+    /// @remarks
+    /// There can only be a max of 5 tags
+    tags: ?[][]const u8,
+    /// Event webhook URL for the app to receive webhook events
+    event_webhooks_url: ?[]const u8,
+    /// If webhook events are enabled for the app. 1 to disable, and 2 to enable.
+    event_webhooks_status: ?ApplicationEventWebhookStatus,
+    /// List of Webhook event types the app subscribes to
+    event_webhooks_types: ?[]WebhookEventType,
+};
+
+pub const ApplicationEventWebhookStatus = enum(u8) {
+    /// Webhook events are disabled by developer
+    Disabled = 1,
+    /// Webhook events are enabled by developer */
+    Enabled = 2,
+    /// Webhook events are disabled by Discord, usually due to inactivity */
+    DisabledByDiscord = 3,
+};
+
+/// https://discord.com/developers/docs/events/webhook-events#event-types
+pub const WebhookEventType = union(enum) {
+    /// Sent when an app was authorized by a user to a server or their account
+    APPLICATION_AUTHORIZED,
+    /// Entitlement was created
+    ENTITLEMENT_CREATE,
+    /// User was added to a Quest (currently unavailable)
+    QUEST_USER_ENROLLMENT,
+};

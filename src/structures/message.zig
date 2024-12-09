@@ -370,3 +370,14 @@ pub const AllowedMentions = struct {
     /// For replies, whether to mention the author of the message being replied to (default false)
     replied_user: ?bool,
 };
+
+pub const GetMessagesQuery = struct {
+    /// Get messages around this message ID,
+    around: ?Snowflake,
+    ///  Get messages before this message ID
+    before: ?Snowflake,
+    /// Get messages after this message ID
+    after: ?Snowflake,
+    /// Max number of messages to return (1-100),
+    limit: ?usize = 50,
+};

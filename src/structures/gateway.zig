@@ -126,7 +126,7 @@ pub const ActivityLocation = struct {
 };
 
 /// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-kind-enum
-pub const ActivityLocationKind = enum {
+pub const ActivityLocationKind = union(enum) {
     /// The Location is a Guild Channel
     gc,
     /// The Location is a Private Channel, such as a DM or GDM

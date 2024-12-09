@@ -88,3 +88,15 @@ pub const SkuType = enum(u4) {
     /// System-generated group for each SUBSCRIPTION SKU created
     SubscriptionGroup = 6,
 };
+
+pub const CreateTestEntitlement = struct {
+    /// ID of the SKU to grant the entitlement to
+    sku_id: []const u8,
+    /// ID of the guild or user to grant the entitlement top
+    owner_id: []const u8,
+    /// 1 for a guild subscription, 2 for a user subscription
+    owner_type: enum(u8) {
+        guild_subscription = 1,
+        user_subscription = 2,
+    },
+};

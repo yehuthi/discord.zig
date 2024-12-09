@@ -5,7 +5,6 @@ A high-performance bleeding edge Discord library in Zig, featuring full API cove
 * 100% API Coverage & Fully Typed: Offers complete access to Discord's API with strict typing for reliable and safe code.
 * High Performance: Faster than whichever library you can name (WIP)
 * Flexible Payload Parsing: Supports payload parsing through both zlib and zstd*.
-* Language Agnostic: Primarily in Zig, but also compatible with JavaScript. (PERHAPS?)
 
 ```zig
 const Client = @import("discord.zig").Client;
@@ -75,23 +74,13 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 ## http methods missing
 | Endpoint                               | Support |
 |----------------------------------------|---------|
-| Application related                    | ❌      |
 | Audit log                              | ❌      |
 | Automod                                | ❌      |
-| Channel related                        | ✅      |
-| Emoji related                          | ✅      |
-| Entitlement related                    | ❌      |
-| Guild related                          | ✅      |
 | Guild Scheduled Event related          | ❌      |
 | Guild template related                 | ❌      |
-| Invite related                         | ✅      |
-| Message related                        | ✅      |
-| Poll related                           | ✅      |
-| SKU related                            | ❌      |
 | Soundboard related                     | ❌      |
 | Stage Instance related                 | ❌      |
 | Sticker related                        | ❌      |
 | Subscription related                   | ❌      |
-| User related                           | ✅      |
 | Voice related                          | ❌      |
 | Webhook related                        | ❌      |

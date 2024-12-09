@@ -1101,12 +1101,12 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
 }
 
 /// meant to handle a `JsonType` value and handling the deinitialization thereof
-pub fn Owned(comptime Struct: type) type {
-    if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
+pub fn Owned(comptime T: type) type {
+    // if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
 
     return struct {
         arena: *std.heap.ArenaAllocator,
-        value: Struct,
+        value: T,
 
         pub fn deinit(self: @This()) void {
             const allocator = self.arena.child_allocator;

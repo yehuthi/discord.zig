@@ -796,13 +796,17 @@ pub const RequestFailedError = zjson.ParserError || MakeRequestError || error{Fa
 /// If operating on a guild channel, this endpoint requires the current user to have the `VIEW_CHANNEL` permission.
 /// If the channel is a voice channel, they must also have the `CONNECT` permission.
 /// If the current user is missing the `READ_MESSAGE_HISTORY` permission in the channel, then no messages will be returned.
-/// TODO: add query params
-pub fn fetchMessages(self: *Self, channel_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Message) {
+pub fn fetchMessages(self: *Self, channel_id: Snowflake, query: Types.GetMessagesQuery) RequestFailedError!zjson.Owned([]Types.Message) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addQueryParam("limit", query.limit);
+    try req.addQueryParam("around", query.around);
+    try req.addQueryParam("before", query.before);
+    try req.addQueryParam("after", query.after);
 
     const messages = try req.get([]Types.Message, path);
     return messages;
@@ -2423,7 +2427,8 @@ pub fn fetchAnswerVoters(
 /// Immediately ends the poll.
 /// You cannot end polls from other users.
 ///
-/// Returns a message object. Fires a Message Update Gateway event.
+/// Returns a message object.
+/// Fires a Message Update Gateway event.
 pub fn endPoll(
     self: *Self,
     channel_id: Snowflake,
@@ -2437,4 +2442,142 @@ pub fn endPoll(
 
     const msg = try req.post(Types.Message, path);
     return msg;
+}
+
+/// Returns the application object associated with the requesting bot user.
+pub fn fetchMyApplication(self: *Self) RequestFailedError!zjson.Owned(Types.Application) {
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const app = try req.get(Types.Application, "/applications/@me");
+    return app;
+}
+
+/// Edit properties of the app associated with the requesting bot user.
+/// Only properties that are passed will be updated.
+/// Returns the updated application object on success.
+pub fn editMyApplication(self: *Self, params: Types.ModifyApplication) RequestFailedError!zjson.Owned(Types.Application) {
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const app = try req.patch(Types.Application, "/applications/@me", params);
+    return app;
+}
+
+/// Returns a serialized activity instance, if it exists.
+/// Useful for preventing unwanted activity sessions.
+pub fn fetchActivityInstance(self: *Self, application_id: Snowflake, insance: []const u8) RequestFailedError!zjson.Owned(Types.ActivityInstance) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/activity-instances/{s}", .{ application_id.into(), insance });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const activity_instance = try req.get(Types.ActivityInstance, path);
+    return activity_instance;
+}
+
+/// Returns a list of application role connection metadata objects for the given application.
+pub fn fetchApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) RequestFailedError!zjson.Owned([]Types.ApplicationRoleConnection) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.get([]Types.ApplicationRoleConnection, path);
+}
+
+/// Updates and returns a list of application role connection metadata objects for the given application.
+pub fn updateApplicationRoleConnectionMetadataRecords(self: *Self, application_id: Snowflake) RequestFailedError!zjson.Owned([]Types.ApplicationRoleConnection) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/role-connection/metadata", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.put4([]Types.ApplicationRoleConnection, path);
+}
+
+/// Returns all entitlements for a given app, active and expired.
+pub fn fetchEntitlements(self: *Self, application_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Entitlement) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const entitlements = try req.get([]Types.Entitlement, path);
+    return entitlements;
+}
+
+/// Returns an entitlement.
+pub fn fetchEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) RequestFailedError!zjson.Owned(Types.Entitlement) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}", .{ application_id.into(), entitlement_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const entitlement = try req.get(Types.Entitlement, path);
+    return entitlement;
+}
+
+/// For One-Time Purchase consumable SKUs, marks a given entitlement for the user as consumed.
+/// The entitlement will have consumed: true when using List Entitlements.
+///
+/// Returns a 204 No Content on success.
+pub fn consumeEntitlement(self: *Self, application_id: Snowflake, entitlement_id: Snowflake) RequestFailedError!void {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements/{d}/consume", .{ application_id.into(), entitlement_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.post5(path);
+}
+
+/// Creates a test entitlement to a given SKU for a given guild or user.
+/// Discord will act as though that user or guild has entitlement to your premium offering.
+///
+/// This endpoint returns a partial entitlement object. It will not contain `subscription_id`, `starts_at`, or `ends_at`, as it's valid in perpetuity.
+///
+/// After creating a test entitlement, you'll need to reload your Discord client. After doing so, you'll see that your server or user now has premium access.
+pub fn createTestEntitlement(
+    self: *Self,
+    application_id: Snowflake,
+    params: Types.CreateTestEntitlement,
+) RequestFailedError!zjson.Owned(Partial(Types.Entitlement)) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.post(Partial(Types.Entitlement), path, params);
+}
+
+/// Deletes a currently-active test entitlement. Discord will act as though that user or guild no longer has entitlement to your premium offering.
+///
+/// Returns 204 No Content on success.
+pub fn deleteTestEntitlement(self: *Self, application_id: Snowflake) RequestFailedError!void {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/entitlements", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.delete(path);
+}
+
+/// Returns all SKUs for a given application.
+pub fn fetchSkus(self: *Self, application_id: Snowflake) RequestFailedError!zjson.Owner([]Types.Sku) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/applications/{d}/skus", .{application_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const skus = try req.get([]Types.Sku, path);
+    return skus;
 }

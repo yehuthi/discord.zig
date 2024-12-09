@@ -65,8 +65,11 @@ pub const FetchReq = struct {
         try self.extra_headers.append(http.Header{ .name = name, .value = value });
     }
 
-    pub fn addQueryParam(self: *FetchReq, name: []const u8, value: []const u8) !void {
-        try self.query_params.put(name, value);
+    pub fn addQueryParam(self: *FetchReq, name: []const u8, value: anytype) !void {
+        if (value == null)
+            return;
+        var buf: [256]u8 = undefined;
+        try self.query_params.put(name, try std.fmt.bufPrint(&buf, "{any}", .{value}));
     }
 
     fn formatQueryParams(self: *FetchReq) ![]const u8 {
@@ -169,6 +172,15 @@ pub const FetchReq = struct {
 
         if (result.status != .no_content)
             return error.FailedRequest;
+    }
+
+    pub fn put4(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
+        const result = try self.makeRequest(.PUT, path, null);
+
+        if (result.status != .ok)
+            return error.FailedRequest;
+
+        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
     }
 
     pub fn post(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !zjson.Owned(T) {
