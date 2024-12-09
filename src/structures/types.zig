@@ -41,6 +41,7 @@ pub usingnamespace @import("oauth.zig");
 pub usingnamespace @import("poll.zig");
 pub usingnamespace @import("role.zig");
 pub usingnamespace @import("scheduled_event.zig");
+pub usingnamespace @import("sticker.zig");
 pub usingnamespace @import("team.zig");
 pub usingnamespace @import("thread.zig");
 pub usingnamespace @import("user.zig");

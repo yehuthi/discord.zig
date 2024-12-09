@@ -26,7 +26,7 @@ const http = std.http;
 
 // todo use this to read compressed messages
 const zlib = @import("zlib");
-const zjson = @import("json");
+const zjson = @import("json.zig");
 
 const Self = @This();
 
@@ -901,7 +901,8 @@ pub fn sendMessageWithFiles(
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
-    try req.post3(Types.Message, path, wf.create_message, wf.files);
+    const msg = try req.post3(Types.Message, path, wf.create_message, wf.files);
+    return msg;
 }
 
 /// Crosspost a message in an Announcement Channel to following channels.
@@ -2580,4 +2581,123 @@ pub fn fetchSkus(self: *Self, application_id: Snowflake) RequestFailedError!zjso
 
     const skus = try req.get([]Types.Sku, path);
     return skus;
+}
+
+// start sticker methods
+
+/// Returns a list of available sticker packs.
+pub fn fetchStickerPacks(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned([]Types.StickerPack) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/sticker-packs", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const packs = try req.get([]Types.StickerPack, path);
+    return packs;
+}
+
+/// Returns a sticker object for the given sticker ID.
+pub fn fetchSticker(self: *Self, sticker_id: Snowflake) RequestFailedError!zjson.Owned(Types.Sticker) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/stickers/{d}", .{sticker_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const sticker = try req.get(Types.Sticker, path);
+    return sticker;
+}
+
+/// Returns a sticker object for the given sticker ID.
+pub fn fetchStickerPack(self: *Self, pack_id: Snowflake) RequestFailedError!zjson.Owned(Types.StickerPack) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/sticker-packs/{d}", .{pack_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const pack = try req.get(Types.StickerPack, path);
+    return pack;
+}
+
+/// Returns an array of sticker objects for the given guild.
+/// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+pub fn fetchGuildStickers(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Sticker) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const stickers = try req.get([]Types.Sticker, path);
+    return stickers;
+}
+
+/// Returns an array of sticker objects for the given guild.
+/// Includes `user` fields if the bot has the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+pub fn fetchGuildSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) RequestFailedError!zjson.Owned(Types.Sticker) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    const sticker = try req.get(Types.Sticker, path);
+    return sticker;
+}
+
+/// Create a new sticker for the guild.
+/// Requires the `CREATE_GUILD_EXPRESSIONS` permission.
+/// Returns the new sticker object on success.
+/// Fires a Guild Stickers Update Gateway event.
+pub fn createSticker(
+    self: *Self,
+    guild_id: Snowflake,
+    sticker: Types.CreateModifyGuildSticker,
+    file: @import("http.zig").FileData,
+) RequestFailedError!zjson.Owned(Types.Sticker) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers", .{guild_id.into()});
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    var files = .{file};
+    return req.post2(
+        Types.Sticker,
+        path,
+        sticker,
+        &files,
+    );
+}
+
+/// Modify the given sticker.
+/// For stickers created by the current user, requires either the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+/// For other stickers, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
+/// Returns the updated sticker object on success.
+/// Fires a Guild Stickers Update Gateway event.
+pub fn editSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake, sticker: Types.CreateModifyGuildSticker) RequestFailedError!zjson.Owned(Types.Sticker) {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    return req.patch(Types.Sticker, path, sticker);
+}
+
+/// Delete the given sticker.
+/// For stickers created by the current user, requires either the `CREATE_GUILD_EXPRESSIONS` or `MANAGE_GUILD_EXPRESSIONS` permission.
+/// For other stickers, requires the `MANAGE_GUILD_EXPRESSIONS` permission.
+/// Returns 204 No Content on success.
+/// Fires a Guild Stickers Update Gateway event.
+pub fn deleteSticker(self: *Self, guild_id: Snowflake, sticker_id: Snowflake) RequestFailedError!void {
+    var buf: [256]u8 = undefined;
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/stickers/{d}", .{ guild_id.into(), sticker_id.into() });
+
+    var req = FetchReq.init(self.allocator, self.details.token);
+    defer req.deinit();
+
+    try req.delete(path);
 }

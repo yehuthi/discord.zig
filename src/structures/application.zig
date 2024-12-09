@@ -21,6 +21,7 @@ const Partial = @import("partial.zig").Partial;
 const User = @import("user.zig").User;
 const Team = @import("team.zig").Team;
 const Guild = @import("guild.zig").Guild;
+const AssociativeArray = @import("../json.zig").AssociativeArray;
 
 /// https://discord.com/developers/docs/resources/application#application-object
 pub const Application = struct {
@@ -65,9 +66,7 @@ pub const Application = struct {
     /// settings for the application's default in-app authorization link, if enabled
     install_params: ?InstallParams,
     // Default scopes and permissions for each supported installation context.
-    // partial?
-    // integration_types_config: ?Record(ApplicationIntegrationType, ApplicationIntegrationTypeConfiguration),
-
+    integration_types_config: ?AssociativeArray(ApplicationIntegrationType, ApplicationIntegrationTypeConfiguration),
     /// the application's default custom authorization link, if enabled
     custom_install_url: ?[]const u8,
     /// the application's role connection verification entry point, which when configured will render the app as a verification method in the guild role verification configuration

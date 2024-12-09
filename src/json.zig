@@ -30,6 +30,7 @@
 //! defer allocator.deinit();
 //! const result = parseIntoT(MyStruct, "{ \"key\": \"value\" }", allocator);
 //! ```
+//! repo: https://codeberg.org/yuzu/json
 
 const std = @import("std");
 const mem = std.mem;
@@ -1148,6 +1149,55 @@ pub fn Record(comptime T: type) type {
                 errdefer allocator.free(k);
                 errdefer v.deinit(allocator);
                 try map.put(allocator, k, try parseInto(T, allocator, v));
+            }
+
+            return .{ .map = map };
+        }
+    };
+}
+
+/// a hashmap for key value pairs
+/// where every key is an int
+///
+/// an example would be this
+///
+/// {
+/// ...
+///  "integration_types_config": {
+///    "0": ...
+///    "1": {
+///      "oauth2_install_params": {
+///        "scopes": ["applications.commands"],
+///        "permissions": "0"
+///      }
+///    }
+///  },
+///  ...
+/// }
+/// this would help us map an enum member 0, 1, etc of type E into V
+/// very useful stuff
+/// internally, an EnumMap
+pub fn AssociativeArray(comptime E: type, comptime V: type) type {
+    if (@typeInfo(E) != .@"enum")
+        @compileError("may only use enums as keys");
+
+    return struct {
+        map: std.EnumMap(E, V),
+        pub fn toJson(allocator: mem.Allocator, value: JsonType) !@This() {
+            // TODO: initialize this more efficiently
+            var map = std.EnumMap(E, V){};
+
+            var iterator = value.object.iterator();
+
+            while (iterator.next()) |pair| {
+                const k = pair.key_ptr.*;
+                const v = pair.value_ptr.*;
+
+                errdefer allocator.free(k);
+                errdefer v.deinit(allocator);
+
+                const int = std.fmt.parseInt(@typeInfo(E).@"enum".tag_type, k, 10) catch unreachable;
+                map.put(@enumFromInt(int), try parseInto(V, allocator, v));
             }
 
             return .{ .map = map };

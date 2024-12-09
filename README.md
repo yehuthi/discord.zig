@@ -80,7 +80,6 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 | Guild template related                 | ❌      |
 | Soundboard related                     | ❌      |
 | Stage Instance related                 | ❌      |
-| Sticker related                        | ❌      |
 | Subscription related                   | ❌      |
 | Voice related                          | ❌      |
 | Webhook related                        | ❌      |

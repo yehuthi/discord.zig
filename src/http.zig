@@ -18,7 +18,7 @@ const std = @import("std");
 const mem = std.mem;
 const http = std.http;
 const json = std.json;
-const zjson = @import("json");
+const zjson = @import("json.zig");
 
 pub const BASE_URL = "https://discord.com/api/v10";
 
@@ -213,7 +213,7 @@ pub const FetchReq = struct {
         path: []const u8,
         object: anytype,
         files: []const FileData,
-    ) !void {
+    ) !zjson.Owned(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -222,9 +222,10 @@ pub const FetchReq = struct {
         try json.stringify(object, .{}, string.writer());
         const result = try self.makeRequestWithFiles(.POST, path, try string.toOwnedSlice(), files);
 
-        _ = T;
         if (result.status != .ok)
             return error.FailedRequest;
+
+        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
     }
 
     pub fn post4(self: *FetchReq, path: []const u8, object: anytype) !void {

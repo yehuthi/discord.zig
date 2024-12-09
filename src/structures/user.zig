@@ -17,10 +17,10 @@
 const PremiumTypes = @import("shared.zig").PremiumTypes;
 const Snowflake = @import("snowflake.zig").Snowflake;
 const Application = @import("application.zig").Application;
-const Record = @import("json").Record;
 const OAuth2Scope = @import("shared.zig").OAuth2Scope;
 const Integration = @import("integration.zig").Integration;
 const Partial = @import("partial.zig").Partial;
+const Record = @import("../json.zig").Record;
 
 /// https://discord.com/developers/docs/resources/user#user-object
 pub const User = struct {
@@ -115,7 +115,7 @@ pub const Connection = struct {
 };
 
 /// https://discord.com/developers/docs/resources/user#connection-object-services
-pub const ConnectionServiceType = enum {
+pub const ConnectionServiceType = union(enum) {
     @"amazon-music",
     battlenet,
     @"Bungie.net",

@@ -23,9 +23,10 @@ const Embed = @import("embed.zig").Embed;
 const AllowedMentionTypes = @import("shared.zig").AllowedMentionsTypes;
 const PremiumTypes = @import("shared.zig").PremiumTypes;
 const InteractionTypes = @import("shared.zig").InteractionTypes;
-const StickerTypes = @import("shared.zig").StickerTypes;
-const StickerFormatTypes = @import("shared.zig").StickerFormatTypes;
 const MessageTypes = @import("shared.zig").MessageTypes;
+const Sticker = @import("sticker.zig").Sticker;
+const StickerItem = @import("sticker.zig").StickerItem;
+const StickerPath = @import("sticker.zig").StickerPack;
 const MessageFlags = @import("shared.zig").MessageFlags;
 const Emoji = @import("emoji.zig").Emoji;
 const Poll = @import("poll.zig").Poll;
@@ -273,32 +274,6 @@ pub const MessageSnapshot = struct {
     },
 };
 
-/// https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-structure
-pub const Sticker = struct {
-    /// [Id of the sticker](https://discord.com/developers/docs/reference#image-formatting)
-    id: Snowflake,
-    /// Id of the pack the sticker is from
-    pack_id: ?Snowflake,
-    /// Name of the sticker
-    name: []const u8,
-    /// Description of the sticker
-    description: []const u8,
-    /// a unicode emoji representing the sticker's expression
-    tags: []const u8,
-    /// [type of sticker](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)
-    type: StickerTypes,
-    /// [Type of sticker format](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)
-    format_type: StickerFormatTypes,
-    ///  Whether or not the sticker is available
-    available: ?bool,
-    /// Id of the guild that owns this sticker
-    guild_id: ?Snowflake,
-    /// The user that uploaded the sticker
-    user: ?User,
-    /// A sticker's sort order within a pack
-    sort_value: ?isize,
-};
-
 /// https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
 pub const MessageInteraction = struct {
     /// Id of the interaction
@@ -330,34 +305,6 @@ pub const MessageInteractionMetadata = struct {
     /// Metadata for the interaction that was used to open the modal, present only on modal submit interactions
     /// TAKES A POINTER
     triggering_interaction_metadata: ?*MessageInteractionMetadata,
-};
-
-/// https://discord.com/developers/docs/resources/sticker#sticker-item-object-sticker-item-structure
-pub const StickerItem = struct {
-    /// Id of the sticker
-    id: Snowflake,
-    /// Name of the sticker
-    name: []const u8,
-    /// [Type of sticker format](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)
-    format_type: StickerFormatTypes,
-};
-
-/// https://discord.com/developers/docs/resources/sticker#sticker-pack-object-sticker-pack-structure
-pub const StickerPack = struct {
-    /// id of the sticker pack
-    id: Snowflake,
-    /// the stickers in the pack
-    stickers: []Sticker,
-    /// name of the sticker pack
-    name: []const u8,
-    /// id of the pack's SKU
-    sku_id: Snowflake,
-    /// id of a sticker in the pack which is shown as the pack's icon
-    cover_sticker_id: ?Snowflake,
-    /// description of the sticker pack
-    description: []const u8,
-    /// id of the sticker pack's [banner image](https://discord.com/developers/docs/reference#image-formatting)
-    banner_asset_id: ?Snowflake,
 };
 
 pub const AllowedMentions = struct {

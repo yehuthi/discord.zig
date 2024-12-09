@@ -68,7 +68,6 @@ pub const ApplicationWebhook = struct {
     token: ?[]const u8,
     /// The url used for executing the webhook (returned by the webhooks OAuth2 flow)
     url: ?[]const u8,
-
     /// The id of the webhook
     id: Snowflake,
     /// The guild id this webhook is for

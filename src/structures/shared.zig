@@ -16,7 +16,7 @@
 
 const std = @import("std");
 const Snowflake = @import("snowflake.zig").Snowflake;
-const zjson = @import("json");
+const zjson = @import("../json.zig");
 
 pub const PresenceStatus = enum {
     online,

@@ -15,7 +15,7 @@
 //! PERFORMANCE OF THIS SOFTWARE.
 
 const std = @import("std");
-const zjson = @import("json");
+const zjson = @import("../json.zig");
 
 pub const Snowflake = enum(u64) {
     _,
