@@ -16,6 +16,7 @@
 
 pub usingnamespace @import("./structures/types.zig");
 pub const Shard = @import("shard.zig");
+pub const zjson = @import("json.zig");
 
 pub const Internal = @import("internal.zig");
 const GatewayDispatchEvent = Internal.GatewayDispatchEvent;
