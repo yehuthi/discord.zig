@@ -159,7 +159,7 @@ pub const VoiceChannelEffectSend = struct {
     /// The ID of the emoji animation, for emoji reaction and soundboard effects
     animation_id: ?isize,
     /// The ID of the soundboard sound, for soundboard effects
-    sound_id: union(enum) {
+    sound_id: union {
         string: ?[]const u8,
         integer: isize,
     },
@@ -168,11 +168,11 @@ pub const VoiceChannelEffectSend = struct {
 };
 
 /// https://discord.com/developers/docs/topics/gateway-events#voice-channel-effect-send-animation-types
-pub const VoiceChannelEffectAnimationType = enum(u4) {
+pub const VoiceChannelEffectAnimationType = enum {
     /// A fun animation, sent by a Nitro subscriber
-    Premium = 0,
+    Premium,
     /// The standard animation
-    Basic = 1,
+    Basic,
 };
 
 /// https://discord.com/developers/docs/topics/gateway#invite-create
@@ -663,7 +663,7 @@ pub const CreateMessage = struct {
     /// The components you would like to have sent in this message
     components: ?[]MessageComponent,
     /// IDs of up to 3 stickers in the server to send in the message
-    stickerIds: ?union(enum) { one: struct { []const u8 }, two: struct { []const u8 }, three: struct { []const u8 } },
+    stickerIds: ?[][]const u8,
 };
 
 /// https://discord.com/developers/docs/resources/guild#modify-guild-welcome-screen

@@ -941,8 +941,6 @@ pub fn repetition(comptime T: type, parser: Parser(T)) Parser([]T) {
 
 pub const Error = std.mem.Allocator.Error || ParserError;
 
-/// doesn't work yet
-/// but will someday
 pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Error!T {
     switch (@typeInfo(T)) {
         .void => return {},
@@ -950,15 +948,15 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             return value.bool;
         },
         .int, .comptime_int => {
-            // std.debug.assert(value.number.is(.integer));
+            std.debug.assert(value.number.is(.integer)); // attempting to cast an int against a non-int
             return value.number.cast(T);
         },
         .float, .comptime_float => {
-            // std.debug.assert(value.number.is(.float));
+            std.debug.assert(value.number.is(.float)); // attempting to cast a float against a non-float
             return value.number.cast(T);
         },
         .null => {
-            // std.debug.assert(value.is(.null));
+            std.debug.assert(value.is(.null)); // nullable or required property marked explicitly as null
             return null;
         },
         .optional => |optionalInfo| {
@@ -969,13 +967,38 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             if (std.meta.hasFn(T, "toJson")) {
                 return try T.toJson(allocator, value);
             }
-            if (unionInfo.tag_type == null)
-                @compileError("Unable to parse into untagged union '" ++ @typeName(T) ++ "'");
 
             var result: ?T = null;
+
+            if (unionInfo.tag_type == null) {
+                switch (value) {
+                    .string => |string| inline for (unionInfo.fields) |u_field| {
+                        if (u_field.type == []const u8)
+                            result = @unionInit(T, u_field.name, string);
+                    },
+                    .bool => |bool_| inline for (unionInfo.fields) |u_field| {
+                        if (u_field.type == bool)
+                            result = @unionInit(T, u_field.name, bool_);
+                    },
+                    .number => |number| inline for (unionInfo.fields) |u_field| {
+                        switch (number) {
+                            .integer => |i| if (u_field.type == @TypeOf(i)) {
+                                result = @unionInit(T, u_field.name, i);
+                            },
+                            .float => |f| if (u_field.type == @TypeOf(f)) {
+                                result = @unionInit(T, u_field.name, f);
+                            },
+                        }
+                    },
+                    else => return error.TypeMismatch, // may only cast string, bool, number
+                }
+
+                return result.?;
+            }
+
             const fieldname = switch (value) {
                 .string => |slice| slice,
-                else => @panic("can only cast strings"),
+                else => @panic("can only cast strings for untagged union"),
             };
 
             inline for (unionInfo.fields) |u_field| {
@@ -983,7 +1006,7 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
                     if (u_field.type == void) {
                         result = @unionInit(T, u_field.name, {});
                     } else {
-                        @panic("unions may only contain empty values");
+                        @panic("tagged unions may only contain empty values");
                     }
                 }
             }
@@ -1027,8 +1050,7 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
         .array => |arrayInfo| {
             switch (value) {
                 .string => |string| {
-                    if (arrayInfo.child != u8)
-                        return error.TypeMismatch;
+                    if (arrayInfo.child != u8) return error.TypeMismatch; // attempting to cast an array of T against a string
                     var r: T = undefined;
                     var i: usize = 0;
                     while (i < arrayInfo.len) : (i += 1)
@@ -1047,8 +1069,7 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
         },
         .pointer => |ptrInfo| switch (ptrInfo.size) {
             .One => {
-                // we simply allocate the type and return an address instead
-                // of just returning the type
+                // we simply allocate the type and return an address instead of just returning the type
                 const r: *ptrInfo.child = try allocator.create(ptrInfo.child);
                 r.* = try parseInto(ptrInfo.child, allocator, value);
                 return r;
@@ -1056,8 +1077,8 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             .Slice => switch (value) {
                 .array => |array| {
                     var arraylist: std.ArrayList(ptrInfo.child) = .init(allocator);
+                    try arraylist.ensureUnusedCapacity(array.len);
                     for (array) |jsonval| {
-                        try arraylist.ensureUnusedCapacity(1);
                         const item = try parseInto(ptrInfo.child, allocator, jsonval);
                         arraylist.appendAssumeCapacity(item);
                     }
@@ -1070,14 +1091,16 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
                 .string => |string| {
                     if (ptrInfo.child == u8) {
                         var arraylist: std.ArrayList(u8) = .init(allocator);
-                        for (string) |char| {
-                            try arraylist.ensureUnusedCapacity(1);
+                        try arraylist.ensureUnusedCapacity(string.len);
+
+                        for (string) |char|
                             arraylist.appendAssumeCapacity(char);
-                        }
+
                         if (ptrInfo.sentinel) |some| {
                             const sentinel = @as(*align(1) const ptrInfo.child, @ptrCast(some)).*;
                             return try arraylist.toOwnedSliceSentinel(sentinel);
                         }
+
                         if (ptrInfo.is_const) {
                             arraylist.deinit();
                             return string;
@@ -1089,11 +1112,12 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
                         return try arraylist.toOwnedSlice();
                     }
                 },
-                else => return error.TypeMismatch,
+                else => return error.TypeMismatch, // may only cast string, array
             },
             else => {
                 if (std.meta.hasFn(T, "toJson"))
                     return T.toJson(allocator, value);
+                return error.TypeMismatch; // unsupported type
             },
         },
         else => @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'"),

@@ -61,8 +61,9 @@ pub const FetchReq = struct {
         self.body.deinit();
     }
 
-    pub fn addHeader(self: *FetchReq, name: []const u8, value: []const u8) !void {
-        try self.extra_headers.append(http.Header{ .name = name, .value = value });
+    pub fn addHeader(self: *FetchReq, name: []const u8, value: ?[]const u8) !void {
+        if (value) |some|
+            try self.extra_headers.append(http.Header{ .name = name, .value = some });
     }
 
     pub fn addQueryParam(self: *FetchReq, name: []const u8, value: anytype) !void {

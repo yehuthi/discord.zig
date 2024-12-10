@@ -9,12 +9,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
-    // this is your own program
-    const dzig = b.addModule("discord.zig", .{
-        .root_source_file = b.path("src/discord.zig"),
-        .link_libc = true,
-    });
-
     const websocket = b.dependency("websocket", .{
         .target = target,
         .optimize = optimize,
@@ -27,6 +21,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const dzig = b.addModule("discord.zig", .{
+        .root_source_file = b.path("src/discord.zig"),
+        .link_libc = true,
+    });
+
+    dzig.addImport("ws", websocket.module("websocket"));
+    dzig.addImport("zlib", zlib.module("zlib"));
+    dzig.addImport("deque", deque.module("zig-deque"));
+
     const marin = b.addExecutable(.{
         .name = "marin",
         .root_source_file = b.path("src/test.zig"),
@@ -34,12 +37,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     });
-
-    // now install your own executable after it's built correctly
-
-    dzig.addImport("ws", websocket.module("websocket"));
-    dzig.addImport("zlib", zlib.module("zlib"));
-    dzig.addImport("deque", deque.module("zig-deque"));
 
     marin.root_module.addImport("discord.zig", dzig);
     marin.root_module.addImport("ws", websocket.module("websocket"));
@@ -54,4 +51,25 @@ pub fn build(b: *std.Build) void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    const lib = b.addStaticLibrary(.{
+        .name = "discord.zig",
+        .root_source_file = b.path("src/discord.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.root_module.addImport("ws", websocket.module("websocket"));
+    lib.root_module.addImport("zlib", zlib.module("zlib"));
+    lib.root_module.addImport("deque", deque.module("zig-deque"));
+
+    // docs
+    const docs_step = b.step("docs", "Generate documentation");
+    const docs_install = b.addInstallDirectory(.{
+        .source_dir = lib.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+
+    docs_step.dependOn(&docs_install.step);
 }

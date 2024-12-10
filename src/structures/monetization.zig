@@ -95,7 +95,7 @@ pub const CreateTestEntitlement = struct {
     /// ID of the guild or user to grant the entitlement top
     owner_id: []const u8,
     /// 1 for a guild subscription, 2 for a user subscription
-    owner_type: enum(u8) {
+    owner_type: enum(u4) {
         guild_subscription = 1,
         user_subscription = 2,
     },

@@ -27,16 +27,9 @@ const std = @import("std");
 const mem = std.mem;
 const debug = @import("internal.zig").debug;
 
-pub const discord_epoch = 1420070400000;
-
 /// Calculate and return the shard ID for a given guild ID
 pub inline fn calculateShardId(guild_id: Snowflake, shards: ?usize) u64 {
     return (guild_id.into() >> 22) % shards orelse 1;
-}
-
-/// Convert a timestamp to a snowflake.
-pub inline fn snowflakeToTimestamp(id: Snowflake) u64 {
-    return (id.into() >> 22) + discord_epoch;
 }
 
 const Self = @This();

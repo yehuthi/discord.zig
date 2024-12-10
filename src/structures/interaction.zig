@@ -208,11 +208,7 @@ pub const InteractionDataOption = struct {
     /// Value of application command option type
     type: ApplicationCommandOptionTypes,
     /// Value of the option resulting from user input
-    value: ?union(enum) {
-        string: []const u8,
-        bool: bool,
-        integer: isize,
-    },
+    value: ?union { string: []const u8, bool: bool, integer: isize },
     /// Present if this option is a group or subcommand
     options: ?[]InteractionDataOption,
     /// `true` if this option is the currently focused option for autocomplete

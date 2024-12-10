@@ -17,6 +17,13 @@
 const std = @import("std");
 const zjson = @import("../json.zig");
 
+/// Milliseconds since Discord Epoch, the first second of 2015 or 1420070400000.
+pub const discord_epoch = 1420070400000;
+
+/// Discord utilizes Twitter's snowflake format for uniquely identifiable descriptors (IDs).
+/// These IDs are guaranteed to be unique across all of Discord, except in some unique scenarios in which child objects share their parent's ID.
+/// Because Snowflake IDs are up to 64 bits in size (e.g. a uint64), they are always returned as strings in the HTTP API to prevent integer overflows in some languages.
+/// See Gateway ETF/JSON for more information regarding Gateway encoding.
 pub const Snowflake = enum(u64) {
     _,
 
@@ -46,14 +53,24 @@ pub const Snowflake = enum(u64) {
         return array.toOwnedSlice();
     }
 
+    /// zjson parse
     pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (value.is(.string))
             return Snowflake.fromRaw(value.string) catch std.debug.panic("invalid snowflake: {s}\n", .{value.string});
         unreachable;
     }
 
+    /// print
     pub fn format(self: Snowflake, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        var buf: [256]u8 = undefined;
-        try writer.writeAll(try std.fmt.bufPrint(&buf, "{d}\n", .{self.into()}));
+        try writer.print("{d}", .{self.into()});
+    }
+
+    /// std.json stringify
+    pub fn jsonStringify(self: Snowflake, _: std.json.StringifyOptions, writer: anytype) !void {
+        try writer.print("\"{d}\"", .{self.into()});
+    }
+
+    pub fn toTimestamp(self: Snowflake) u64 {
+        return (self.into() >> 22) + discord_epoch;
     }
 };

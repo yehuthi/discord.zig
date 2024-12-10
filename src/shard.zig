@@ -1508,12 +1508,14 @@ pub fn createChannel(self: *Self, guild_id: Snowflake, create_channel: Types.Cre
 /// Method to fetch a guild
 /// Returns the guild object for the given id.
 /// If `with_counts` is set to true, this endpoint will also return `approximate_member_count` and `approximate_presence_count` for the guild.
-pub fn fetchGuild(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned(Types.Guild) {
+pub fn fetchGuild(self: *Self, guild_id: Snowflake, with_counts: ?bool) RequestFailedError!zjson.Owned(Types.Guild) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addQueryParam("with_counts", with_counts);
 
     const res = try req.get(Types.Guild, path);
     return res;
@@ -1582,7 +1584,6 @@ pub fn editGuildChannelPositions(self: *Self, guild_id: Snowflake, edit_guild_ch
 /// Method to get a guild's active threads
 /// Returns all active threads in the guild, including public and private threads.
 /// Threads are ordered by their `id`, in descending order.
-/// TODO: implement query string parameters
 pub fn fetchGuildActiveThreads(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/threads/active", .{guild_id.into()});
@@ -1607,35 +1608,49 @@ pub fn fetchMember(self: *Self, guild_id: Snowflake, user_id: Snowflake) Request
     return res;
 }
 
+pub const ListGuildMembersQuery = struct {
+    /// max number of members to return (1-1000)
+    limit: u16 = 1,
+    /// the highest user id in the previous page
+    after: Snowflake = Snowflake.from(0),
+};
+
 /// Method to get the members of a guild
 /// Returns a list of guild member objects that are members of the guild.
-/// TODO: implement query string parameters
-pub fn fetchMembers(self: *Self, guild_id: Snowflake) RequestFailedError!zjson.Owned([]Types.Member) {
+pub fn fetchMembers(self: *Self, guild_id: Snowflake, query: ListGuildMembersQuery) RequestFailedError!zjson.Owned([]Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
+    try req.addQueryParam("limit", query.limit);
+    try req.addQueryParam("after", query.after);
+
     const res = try req.get([]Types.Member, path);
     return res;
 }
 
+pub const SearchGuildMembersQuery = struct {
+    /// Query string to match username(s) and nickname(s) against
+    query: []const u8,
+    /// max number of members to return (1-1000)
+    limit: u16,
+};
+
 /// Method to find members
 /// Returns a list of guild member objects whose username or nickname starts with a provided string.
-pub fn searchMembers(self: *Self, guild_id: Snowflake, query: struct {
-    query: []const u8,
-    limit: usize,
-}) RequestFailedError!zjson.Owned([]Types.Member) {
+pub fn searchMembers(self: *Self, guild_id: Snowflake, query: SearchGuildMembersQuery) RequestFailedError!zjson.Owned([]Types.Member) {
     var buf: [256]u8 = undefined;
-    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/search?query={s}&limit={d}", .{
+    const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/search", .{
         guild_id.into(),
-        query.query,
-        query.limit,
     });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addQueryParam("query", query.query);
+    try req.addQueryParam("limit", query.limit);
 
     const res = try req.get([]Types.Member, path);
     return res;
@@ -1663,49 +1678,63 @@ pub fn addMember(self: *Self, guild_id: Snowflake, user_id: Snowflake, credentia
 /// Returns a 200 OK with the guild member as the body.
 /// Fires a Guild Member Update Gateway event. If the channel_id is set to null,
 /// this will force the target user to be disconnected from voice.
-pub fn editMember(self: *Self, guild_id: Snowflake, user_id: Snowflake, attributes: Types.ModifyGuildMember) RequestFailedError!?zjson.Owned(Types.Member) {
+pub fn editMember(
+    self: *Self,
+    guild_id: Snowflake,
+    user_id: Snowflake,
+    attributes: Types.ModifyGuildMember,
+    reason: ?[]const u8,
+) RequestFailedError!?zjson.Owned(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
     const res = try req.patch(Types.Member, path, attributes);
     return res;
 }
 
-pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.ModifyGuildMember) RequestFailedError!?zjson.Owned(Types.Member) {
+pub fn editCurrentMember(self: *Self, guild_id: Snowflake, attributes: Types.ModifyGuildMember, reason: ?[]const u8) RequestFailedError!?zjson.Owned(Types.Member) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
     const res = try req.patch(Types.Member, path, attributes);
     return res;
 }
 
 /// change's someones's nickname
-pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, attributes: Types.ModifyGuildMember) RequestFailedError!void {
+pub fn changeNickname(self: *Self, guild_id: Snowflake, user_id: Snowflake, nick: []const u8, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
-    const res = try req.patch(Types.Member, path, attributes);
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
+    const res = try req.patch(Types.Member, path, .{ .nick = nick });
     defer res.deinit();
 }
 
 /// change's someones's nickname
-pub fn changeMyNickname(self: *Self, guild_id: Snowflake, attributes: Types.ModifyGuildMember) RequestFailedError!void {
+pub fn changeMyNickname(self: *Self, guild_id: Snowflake, nick: []const u8, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/@me", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
-    const res = try req.patch(Types.Member, path, attributes);
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
+    const res = try req.patch(Types.Member, path, .{ .nick = nick });
     defer res.deinit();
 }
 
@@ -1717,6 +1746,7 @@ pub fn addRole(
     guild_id: Snowflake,
     user_id: Snowflake,
     role_id: Snowflake,
+    reason: ?[]const u8,
 ) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}/roles/{d}", .{
@@ -1727,6 +1757,8 @@ pub fn addRole(
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.put3(path);
 }
@@ -1740,6 +1772,7 @@ pub fn removeRole(
     guild_id: Snowflake,
     user_id: Snowflake,
     role_id: Snowflake,
+    reason: ?[]const u8,
 ) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}/roles/{d}", .{
@@ -1750,6 +1783,8 @@ pub fn removeRole(
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }
@@ -1762,6 +1797,7 @@ pub fn kickMember(
     self: *Self,
     guild_id: Snowflake,
     user_id: Snowflake,
+    reason: ?[]const u8,
 ) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/members/{d}", .{ guild_id.into(), user_id.into() });
@@ -1769,8 +1805,19 @@ pub fn kickMember(
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
     try req.delete(path);
 }
+
+/// Provide a user id to before and after for pagination.
+/// Users will always be returned in ascending order by user.id.
+/// If both before and after are provided, only before is respected.
+pub const GetGuildBansQuery = struct {
+    limit: ?u16 = 1000,
+    before: ?Snowflake,
+    after: ?Snowflake,
+};
 
 /// Returns a list of ban objects for the users banned from this guild.
 /// Requires the `BAN_MEMBERS` permission.
@@ -1806,12 +1853,14 @@ pub fn fetchBan(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFai
 /// Requires the `BAN_MEMBERS` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Ban Add Gateway event.
-pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailedError!void {
+pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.put3(path);
 }
@@ -1819,12 +1868,14 @@ pub fn ban(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailedEr
 /// Remove the ban for a user. Requires the `BAN_MEMBERS` permissions.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Ban Remove Gateway event.
-pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailedError!void {
+pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bans/{d}", .{ guild_id.into(), user_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }
@@ -1833,12 +1884,14 @@ pub fn unban(self: *Self, guild_id: Snowflake, user_id: Snowflake) RequestFailed
 /// Requires both the `BAN_MEMBERS` and `MANAGE_GUILD` permissions.
 /// Returns a 200 response on success, including the fields banned_users with the IDs of the banned users
 /// and failed_users with IDs that could not be banned or were already banned.
-pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan) RequestFailedError!zjson.Owned(Types.BulkBan) {
+pub fn bulkBan(self: *Self, guild_id: Snowflake, bulk_ban: Types.CreateGuildBan, reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.BulkBan) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/bulk-ban", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const res = try req.post(Types.BulkBan, path, bulk_ban);
     return res;
@@ -1889,12 +1942,14 @@ pub fn createGuild(self: *Self, create_guild: Partial(Types.CreateGuild)) Reques
 /// Returns the new role object on success.
 /// Fires a Guild Role Create Gateway event.
 /// All JSON params are optional.
-pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.CreateGuildRole)) RequestFailedError!zjson.Owned(Types.Role) {
+pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.CreateGuildRole), reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.Role) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const res = try req.post(Types.Role, path, create_role);
     return res;
@@ -1904,12 +1959,20 @@ pub fn createRole(self: *Self, guild_id: Snowflake, create_role: Partial(Types.C
 /// Requires the `MANAGE_ROLES` permission.
 /// Returns a list of all of the guild's role objects on success.
 /// Fires multiple Guild Role Update Gateway events.
-pub fn editRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, edit_role: Partial(Types.ModifyGuildRole)) RequestFailedError!zjson.Owned(Types.Role) {
+pub fn editRole(
+    self: *Self,
+    guild_id: Snowflake,
+    role_id: Snowflake,
+    edit_role: Partial(Types.ModifyGuildRole),
+    reason: ?[]const u8,
+) RequestFailedError!zjson.Owned(Types.Role) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const res = try req.patch(Types.Role, path, edit_role);
     return res;
@@ -1919,12 +1982,14 @@ pub fn editRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, edit_role:
 /// Requires guild ownership.
 /// Returns the updated level on success.
 /// Fires a Guild Update Gateway event.
-pub fn modifyMFALevel(self: *Self, guild_id: Snowflake) RequestFailedError!void {
+pub fn modifyMFALevel(self: *Self, guild_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/mfa", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(Types.Role, path);
 }
@@ -1933,12 +1998,14 @@ pub fn modifyMFALevel(self: *Self, guild_id: Snowflake) RequestFailedError!void 
 /// Requires the `MANAGE_ROLES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Guild Role Delete Gateway event.
-pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake) RequestFailedError!void {
+pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/roles/{d}", .{ guild_id.into(), role_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(Types.Role, path);
 }
@@ -1948,13 +2015,15 @@ pub fn deleteRole(self: *Self, guild_id: Snowflake, role_id: Snowflake) RequestF
 /// By default, prune will not remove users with roles.
 /// You can optionally include specific roles in your prune by providing the include_roles parameter.
 /// Any inactive user that has a subset of the provided role(s) will be counted in the prune and users with additional roles will not.
-/// TODO: implement query
-pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, _: Types.GetGuildPruneCountQuery) RequestFailedError!zjson.Owned(struct { pruned: isize }) {
+pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, query: Types.GetGuildPruneCountQuery) RequestFailedError!zjson.Owned(struct { pruned: isize }) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addQueryParam("days", query.days);
+    try req.addQueryParam("include_roles", query.include_roles); // needs fixing perhaps
 
     const pruned = try req.get(struct { pruned: isize }, path);
     return pruned;
@@ -1969,12 +2038,19 @@ pub fn fetchPruneCount(self: *Self, guild_id: Snowflake, _: Types.GetGuildPruneC
 /// By default, prune will not remove users with roles.
 /// You can optionally include specific roles in your prune by providing the `include_roles` parameter.
 /// Any inactive user that has a subset of the provided role(s) will be included in the prune and users with additional roles will not.
-pub fn beginGuildPrune(self: *Self, guild_id: Snowflake, params: Types.BeginGuildPrune) RequestFailedError!zjson.Owned(struct { pruned: isize }) {
+pub fn beginGuildPrune(
+    self: *Self,
+    guild_id: Snowflake,
+    params: Types.BeginGuildPrune,
+    reason: ?[]const u8,
+) RequestFailedError!zjson.Owned(struct { pruned: isize }) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/prune", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const pruned = try req.post(struct { pruned: isize }, path, params);
     return pruned;
@@ -2021,11 +2097,7 @@ pub fn fetchIntegrations(self: *Self, guild_id: Snowflake) RequestFailedError!zj
 
 /// Returns a list of integration objects for the guild.
 /// Requires the `MANAGE_GUILD` permission.
-pub fn deleteIntegration(
-    self: *Self,
-    guild_id: Snowflake,
-    integration_id: Snowflake,
-) RequestFailedError!void {
+pub fn deleteIntegration(self: *Self, guild_id: Snowflake, integration_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/integrations/{d}", .{
         guild_id.into(),
@@ -2034,6 +2106,8 @@ pub fn deleteIntegration(
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }
@@ -2056,12 +2130,14 @@ pub fn fetchWidgetSettings(self: *Self, guild_id: Snowflake) RequestFailedError!
 /// Requires the `MANAGE_GUILD` permission.
 /// Returns the updated guild widget settings object.
 /// Fires a Guild Update Gateway event.
-pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.GuildWidget)) RequestFailedError!zjson.Owned(Types.GuildWidget) {
+pub fn editWidget(self: *Self, guild_id: Snowflake, attributes: Partial(Types.GuildWidget), reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.GuildWidget) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/widget", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const widget = try req.patch(Types.GuildWidget, path, attributes);
     return widget;
@@ -2129,12 +2205,19 @@ pub fn fetchOnboarding(self: *Self, guild_id: Snowflake) RequestFailedError!zjso
 }
 
 /// Returns the Onboarding object for the guild.
-pub fn editOnboarding(self: *Self, guild_id: Snowflake, onboarding: Types.GuildOnboardingPromptOption) RequestFailedError!zjson.Owned(Types.GuildOnboarding) {
+pub fn editOnboarding(
+    self: *Self,
+    guild_id: Snowflake,
+    onboarding: Types.GuildOnboardingPromptOption,
+    reason: ?[]const u8,
+) RequestFailedError!zjson.Owned(Types.GuildOnboarding) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/guilds/{d}/onboarding", .{guild_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const ob = try req.put(Types.GuildOnboarding, path, onboarding);
     return ob;

@@ -345,9 +345,9 @@ pub const ActivityFlags = packed struct {
 };
 
 /// https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors
-pub const IntegrationExpireBehaviors = enum(u4) {
-    RemoveRole = 0,
-    Kick = 1,
+pub const IntegrationExpireBehaviors = enum {
+    RemoveRole,
+    Kick,
 };
 
 /// https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum
@@ -939,6 +939,7 @@ pub const ApplicationCommandPermissionTypes = enum(u4) {
 };
 
 /// https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
+/// Permissions v2
 pub const BitwisePermissionFlags = packed struct {
     pub fn toRaw(self: BitwisePermissionFlags) u64 {
         return @bitCast(self);
@@ -1053,7 +1054,106 @@ pub const BitwisePermissionFlags = packed struct {
     _pad: u15 = 0,
 };
 
-pub const PermissionStrings = BitwisePermissionFlags;
+pub const PermissionStrings = union(enum) {
+    /// Allows creation of instant invites
+    CREATE_INSTANT_INVITE,
+    /// Allows kicking members
+    KICK_MEMBERS,
+    /// Allows banning members
+    BAN_MEMBERS,
+    /// Allows all permissions and bypasses channel permission overwrites
+    ADMINISTRATOR,
+    /// Allows management and editing of channels
+    MANAGE_CHANNELS,
+    /// Allows management and editing of the guild
+    MANAGE_GUILD,
+    /// Allows for the addition of reactions to messages
+    ADD_REACTIONS,
+    /// Allows for viewing of audit logs
+    VIEW_AUDIT_LOG,
+    /// Allows for using priority speaker in a voice channel
+    PRIORITY_SPEAKER,
+    /// Allows the user to go live
+    STREAM,
+    /// Allows guild members to view a channel, which includes reading messages in text channels and joining voice channels
+    VIEW_CHANNEL,
+    /// Allows for sending messages in a channel. (does not allow sending messages in threads)
+    SEND_MESSAGES,
+    /// Allows for sending of /tts messages
+    SEND_TTS_MESSAGES,
+    /// Allows for deletion of other users messages
+    MANAGE_MESSAGES,
+    /// Links sent by users with this permission will be auto-embedded
+    EMBED_LINKS,
+    /// Allows for uploading images and files
+    ATTACH_FILES,
+    /// Allows for reading of message history
+    READ_MESSAGE_HISTORY,
+    /// Allows for using the \@everyone tag to notify all users in a channel, and the \@here tag to notify all online users in a channel
+    MENTION_EVERYONE,
+    /// Allows the usage of custom emojis from other servers
+    USE_EXTERNAL_EMOJIS,
+    /// Allows for viewing guild insights
+    VIEW_GUILD_INSIGHTS,
+    /// Allows for joining of a voice channel
+    CONNECT,
+    /// Allows for speaking in a voice channel
+    SPEAK,
+    /// Allows for muting members in a voice channel
+    MUTE_MEMBERS,
+    /// Allows for deafening of members in a voice channel
+    DEAFEN_MEMBERS,
+    /// Allows for moving of members between voice channels
+    MOVE_MEMBERS,
+    /// Allows for using voice-activity-detection in a voice channel
+    USE_VAD,
+    /// Allows for modification of own nickname
+    CHANGE_NICKNAME,
+    /// Allows for modification of other users nicknames
+    MANAGE_NICKNAMES,
+    /// Allows management and editing of roles
+    MANAGE_ROLES,
+    /// Allows management and editing of webhooks
+    MANAGE_WEBHOOKS,
+    /// Allows for editing and deleting emojis, stickers, and soundboard sounds created by all users
+    MANAGE_GUILD_EXPRESSIONS,
+    /// Allows members to use application commands in text channels
+    USE_SLASH_COMMANDS,
+    /// Allows for requesting to speak in stage channels.
+    REQUEST_TO_SPEAK,
+    /// Allows for editing and deleting scheduled events created by all users
+    MANAGE_EVENTS,
+    /// Allows for deleting and archiving threads, and viewing all private threads
+    MANAGE_THREADS,
+    /// Allows for creating public and announcement threads
+    CREATE_PUBLIC_THREADS,
+    /// Allows for creating private threads
+    CREATE_PRIVATE_THREADS,
+    /// Allows the usage of custom stickers from other servers
+    USE_EXTERNAL_STICKERS,
+    /// Allows for sending messages in threads
+    SEND_MESSAGES_IN_THREADS,
+    /// Allows for launching activities (applications with the `EMBEDDED` flag) in a voice channel.
+    USE_EMBEDDED_ACTIVITIES,
+    /// Allows for timing out users to prevent them from sending or reacting to messages in chat and threads, and from speaking in voice and stage channels
+    MODERATE_MEMBERS,
+    /// Allows for viewing role subscription insights.
+    VIEW_CREATOR_MONETIZATION_ANALYTICS,
+    /// Allows for using soundboard in a voice channel.
+    USE_SOUNDBOARD,
+    /// Allows for creating emojis, stickers, and soundboard sounds, and editing and deleting those created by the current user
+    CREATE_GUILD_EXPRESSIONS,
+    /// Allows for creating scheduled events, and editing and deleting those created by the current user
+    CREATE_EVENTS,
+    /// Allows the usage of custom soundboards sounds from other servers
+    USE_EXTERNAL_SOUNDS,
+    /// Allows sending voice messages
+    SEND_VOICE_MESSAGES,
+    /// Allows sending polls
+    SEND_POLLS,
+    /// Allows user-installed apps to send public responses. When disabled, users will still be allowed to use their apps but the responses will be ephemeral. This only applies to apps not also installed to the server.
+    USE_EXTERNAL_APPS,
+};
 
 /// https://discord.com/developers/docs/topics/opcodes-and-status-codes#opcodes-and-status-codes
 pub const GatewayCloseEventCodes = enum(u16) {
@@ -1385,13 +1485,13 @@ pub const SortOrderTypes = enum {
     CreationDate,
 };
 
-pub const ForumLayout = enum(u4) {
+pub const ForumLayout = enum {
     /// No default has been set for forum channel.
-    NotSet = 0,
+    NotSet,
     /// Display posts as a list.
-    ListView = 1,
+    ListView,
     /// Display posts as a collection of tiles.
-    GalleryView = 2,
+    GalleryView,
 };
 
 /// https://discord.com/developers/docs/reference#image-formatting
@@ -1408,7 +1508,7 @@ pub const ImageFormat = union(enum) {
 /// https://discord.com/developers/docs/reference#image-formatting
 pub const ImageSize = isize;
 
-pub const Locales = enum {
+pub const Locales = union(enum) {
     id,
     da,
     de,
@@ -1444,7 +1544,7 @@ pub const Locales = enum {
 };
 
 /// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-pub const OAuth2Scope = enum {
+pub const OAuth2Scope = union(enum) {
     ///
     /// Allows your app to fetch data from a user's "Now Playing/Recently Played" list
     ///
