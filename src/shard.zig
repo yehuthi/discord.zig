@@ -1037,12 +1037,14 @@ pub fn nukeReactionsFor(
 /// Returns a 204 empty response on success.
 /// Fires a Message Delete Gateway event.
 /// TODO: implement audit-log header?
-pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) RequestFailedError!void {
+pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }
@@ -1053,12 +1055,14 @@ pub fn deleteMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) 
 /// Fires a Message Delete Bulk Gateway event.
 ///
 /// Any message IDs given that do not exist or are invalid will count towards the minimum and maximum message count (currently 2 and 100 respectively).
-pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowflake) RequestFailedError!void {
+pub fn bulkDeleteMessages(self: *Self, channel_id: Snowflake, messages: []Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/bulk-delete", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.post4(path, .{ .messages = messages });
 }
@@ -1106,12 +1110,14 @@ pub fn fetchChannel(self: *Self, channel_id: Snowflake) RequestFailedError!zjson
 /// Update a channel's settings.
 /// Returns a channel on success, and a 400 BAD REQUEST on invalid parameters.
 /// All JSON parameters are optional.
-pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.ModifyChannel) RequestFailedError!zjson.Owned(Types.Channel) {
+pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.ModifyChannel, reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const res = try req.patch(Types.Channel, path, edit_channel);
     return res;
@@ -1122,15 +1128,26 @@ pub fn editChannel(self: *Self, channel_id: Snowflake, edit_channel: Types.Modif
 /// Deleting a category does not delete its child channels; they will have their parent_id removed and a Channel Update Gateway event will fire for each of them.
 /// Returns a channel object on success.
 /// Fires a Channel Delete Gateway event (or Thread Delete if the channel was a thread).
-pub fn deleteChannel(self: *Self, channel_id: Snowflake) RequestFailedError!void {
+pub fn deleteChannel(self: *Self, channel_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
     try req.delete(path);
 }
+
+pub const ModifyChannelPermissions = struct {
+    /// the bitwise value of all allowed permissions (default "0")
+    allow: ?Types.BitwisePermissionFlags,
+    /// the bitwise value of all disallowed permissions (default "0")
+    deny: ?Types.BitwisePermissionFlags,
+    /// 0 for a role or 1 for a member
+    type: u1,
+};
 
 /// Edit the channel permission overwrites for a user or role in a channel.
 /// Only usable for guild channels.
@@ -1138,14 +1155,22 @@ pub fn deleteChannel(self: *Self, channel_id: Snowflake) RequestFailedError!void
 /// Only permissions your bot has in the guild or parent channel (if applicable) can be allowed/denied (unless your bot has a `MANAGE_ROLES` overwrite in the channel).
 /// Returns a 204 empty response on success.
 /// Fires a Channel Update Gateway event. For more information about permissions, see permissions.
-pub fn editChannelPermissions(self: *Self, channel_id: Snowflake, overwrite_id: Snowflake) RequestFailedError!void {
+pub fn editChannelPermissions(
+    self: *Self,
+    channel_id: Snowflake,
+    overwrite_id: Snowflake,
+    params: ModifyChannelPermissions,
+    reason: ?[]const u8,
+) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/permissions/{d}", .{ channel_id.into(), overwrite_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
 
-    try req.put3(path);
+    try req.addHeader("X-Audit-Log-Reason", reason);
+
+    try req.put5(path, params);
 }
 
 /// Returns a list of invite objects (with invite metadata) for the channel.
@@ -1168,12 +1193,14 @@ pub fn fetchChannelInvites(self: *Self, channel_id: Snowflake) RequestFailedErro
 /// All JSON parameters for this route are optional, however the request body is not.
 /// If you are not sending any fields, you still have to send an empty JSON object ({}).
 /// Returns an invite object. Fires an Invite Create Gateway event.
-pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.CreateChannelInvite) RequestFailedError!zjson.Owned(Types.Invite) {
+pub fn createChannelInvite(self: *Self, channel_id: Snowflake, params: Types.CreateChannelInvite, reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.Invite) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/invites", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const invite = try req.post(Types.Invite, path, params);
     return invite;
@@ -1201,12 +1228,19 @@ pub fn deleteChannelPermission(self: *Self, channel_id: Snowflake, overwrite_id:
 /// Returns a followed channel object.
 /// Fires a Webhooks Update Gateway event for the target channel.
 /// TODO: support reason header
-pub fn followAnnouncementChannel(self: *Self, channel_id: Snowflake, params: Types.FollowAnnouncementChannel) RequestFailedError!zjson.Owned(Types.FollowedChannel) {
+pub fn followAnnouncementChannel(
+    self: *Self,
+    channel_id: Snowflake,
+    params: Types.FollowAnnouncementChannel,
+    reason: ?[]const u8,
+) RequestFailedError!zjson.Owned(Types.FollowedChannel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/followers", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const fc = try req.post(Types.FollowedChannel, path, params);
     return fc;
@@ -1243,12 +1277,14 @@ pub fn fetchPins(self: *Self, channel_id: Snowflake) RequestFailedError!zjson.Ow
 /// Requires the `MANAGE_MESSAGES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Channel Pins Update Gateway event.
-pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) RequestFailedError!void {
+pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.post5(path);
 }
@@ -1257,12 +1293,14 @@ pub fn pinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) Req
 /// Requires the `MANAGE_MESSAGES` permission.
 /// Returns a 204 empty response on success.
 /// Fires a Channel Pins Update Gateway event.
-pub fn unpinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake) RequestFailedError!void {
+pub fn unpinMessage(self: *Self, channel_id: Snowflake, message_id: Snowflake, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/pins/{d}", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }
@@ -1288,12 +1326,15 @@ pub fn startThreadFromMessage(
     channel_id: Snowflake,
     message_id: Snowflake,
     params: Types.StartThreadFromMessage,
+    reason: ?[]const u8,
 ) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/messages/{d}/threads", .{ channel_id.into(), message_id.into() });
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const thread = try req.post(Types.Channel, path, params);
     return thread;
@@ -1302,12 +1343,14 @@ pub fn startThreadFromMessage(
 /// Creates a new thread that is not connected to an existing message.
 /// Returns a channel on success, and a 400 BAD REQUEST on invalid parameters.
 /// Fires a Thread Create Gateway event.
-pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage) RequestFailedError!zjson.Owned(Types.Channel) {
+pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const thread = try req.post(Types.Channel, path, params);
     return thread;
@@ -1316,12 +1359,14 @@ pub fn startThread(self: *Self, channel_id: Snowflake, params: Types.StartThread
 /// Creates a new thread in a forum or a media channel, and sends a message within the created thread.
 /// Returns a channel, with a nested message object, on success, and a 400 BAD REQUEST on invalid parameters.
 /// Fires a Thread Create and Message Create Gateway event.
-pub fn startThreadInForumOrMediaChannel(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage) RequestFailedError!zjson.Owned(Types.Channel) {
+pub fn startThreadInForumOrMediaChannel(self: *Self, channel_id: Snowflake, params: Types.StartThreadFromMessage, reason: ?[]const u8) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const thread = try req.post(Types.Channel, path, params);
     return thread;
@@ -1338,12 +1383,15 @@ pub fn startThreadInForumOrMediaChannelWithFiles(
     self: *Self,
     channel_id: Snowflake,
     options: StartThreadInForumOrMediaChannelWithFiles,
+    reason: ?[]const u8,
 ) RequestFailedError!zjson.Owned(Types.Channel) {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/channels/{d}/threads", .{channel_id.into()});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     const thread = try req.post3(Types.Channel, path, options.start_thread, options.files);
     return thread;
@@ -2475,12 +2523,14 @@ pub fn fetchInvite(self: *Self, code: []const u8) RequestFailedError!zjson.Owned
 /// Requires the `MANAGE_CHANNELS` permission on the channel this invite belongs to, or `MANAGE_GUILD` to remove any invite across the guild.
 /// Returns an invite object on success.
 /// Fires an Invite Delete Gateway event.
-pub fn deleteInvite(self: *Self, code: []const u8) RequestFailedError!void {
+pub fn deleteInvite(self: *Self, code: []const u8, reason: ?[]const u8) RequestFailedError!void {
     var buf: [256]u8 = undefined;
     const path = try std.fmt.bufPrint(&buf, "/invites/{s}", .{code});
 
     var req = FetchReq.init(self.allocator, self.details.token);
     defer req.deinit();
+
+    try req.addHeader("X-Audit-Log-Reason", reason);
 
     try req.delete(path);
 }

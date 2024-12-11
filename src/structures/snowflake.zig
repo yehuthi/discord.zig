@@ -66,8 +66,8 @@ pub const Snowflake = enum(u64) {
     }
 
     /// std.json stringify
-    pub fn jsonStringify(self: Snowflake, _: std.json.StringifyOptions, writer: anytype) !void {
-        try writer.print("\"{d}\"", .{self.into()});
+    pub fn jsonStringify(snowflake: Snowflake, writer: anytype) !void {
+        try writer.print("\"{d}\"", .{snowflake.into()});
     }
 
     pub fn toTimestamp(self: Snowflake) u64 {

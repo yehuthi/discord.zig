@@ -184,6 +184,19 @@ pub const FetchReq = struct {
         return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
     }
 
+    pub fn put5(self: *FetchReq, path: []const u8, object: anytype) !void {
+        var buf: [4096]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&buf);
+        var string = std.ArrayList(u8).init(fba.allocator());
+        errdefer string.deinit();
+
+        try json.stringify(object, .{}, string.writer());
+        const result = try self.makeRequest(.PUT, path, try self.body.toOwnedSlice());
+
+        if (result.status != .no_content)
+            return error.FailedRequest;
+    }
+
     pub fn post(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !zjson.Owned(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);

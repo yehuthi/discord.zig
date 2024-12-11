@@ -140,7 +140,7 @@ pub fn ConnectQueue(comptime T: type) type {
                 // perhaps store this?
                 const ptr = try self.allocator.create(RequestWithShard);
                 ptr.* = req;
-                try @call(.auto, req.callback, .{ptr});
+                try req.callback(ptr);
                 return;
             }
 
