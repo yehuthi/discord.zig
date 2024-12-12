@@ -30,7 +30,7 @@
 //! defer allocator.deinit();
 //! const result = parseIntoT(MyStruct, "{ \"key\": \"value\" }", allocator);
 //! ```
-//! repo: https://codeberg.org/yuzu/json
+//! repo: https://hg.reactionary.software/repo/zjson/
 
 const std = @import("std");
 const mem = std.mem;
@@ -84,14 +84,14 @@ pub fn Either(comptime L: type, comptime R: type) type {
         /// always returns .right
         pub fn unwrap(self: @This()) R {
             // discord.zig specifics
-            if (@hasField(L, "code") and @hasField(L, "message") and self.value == .left)
-                std.debug.panic("Error: {d}, {s}\n", .{ self.value.left.code, self.value.left.message });
+            if (@hasField(L, "code") and @hasField(L, "message") and self == .left)
+                std.debug.panic("Error: {d}, {s}\n", .{ self.left.code, self.left.message });
 
             // for other libraries, it'll do this
-            if (self.value == .left)
-                std.debug.panic("Error: {any}\n", .{self.value.left});
+            if (self == .left)
+                std.debug.panic("Error: {any}\n", .{self.left});
 
-            return self.value.right;
+            return self.right;
         }
 
         pub fn is(self: @This(), tag: std.meta.Tag(@This())) bool {
@@ -168,7 +168,7 @@ pub fn jsonString(str: []const u8, allocator: mem.Allocator) ParseResult([]const
     var i: usize = 0;
     while (i < string.len) {
         if (isEscapeSeq(string[i]) and i + 5 < string.len) switch (string[i + 1]) {
-            0x22, 0x5C, 0x2F => |d| try characters.append(d),
+            inline 0x22, 0x5C, 0x2F => |d| try characters.append(d),
             'b' => try characters.append(0x8),
             'f' => try characters.append(0xC),
             'n' => try characters.append(0xA),
@@ -439,7 +439,7 @@ pub fn jsonObject(str: []const u8, allocator: mem.Allocator) ParseResult(JsonRaw
     };
     const str4, _ = try closingCurlyBrace(str3, allocator);
 
-    var obj = JsonRawHashMap{};
+    var obj: JsonRawHashMap = .{};
     errdefer obj.deinit(allocator);
 
     for (pairs) |entry| {
@@ -1140,8 +1140,6 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
 
 /// meant to handle a `JsonType` value and handling the deinitialization thereof
 pub fn Owned(comptime T: type) type {
-    // if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
-
     return struct {
         arena: *std.heap.ArenaAllocator,
         value: T,
@@ -1156,8 +1154,6 @@ pub fn Owned(comptime T: type) type {
 
 /// same as `Owned` but instead it handles 2 different values, generally `.right` is the correct one and `left` the error type
 pub fn OwnedEither(comptime L: type, comptime R: type) type {
-    // if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
-
     return struct {
         value: Either(L, R),
         arena: *std.heap.ArenaAllocator,
@@ -1229,7 +1225,7 @@ pub fn Record(comptime T: type) type {
     return struct {
         map: std.StringHashMapUnmanaged(T),
         pub fn toJson(allocator: mem.Allocator, value: JsonType) !@This() {
-            var map: std.StringHashMapUnmanaged(T) = .{};
+            var map: std.StringHashMapUnmanaged(T) = .init;
 
             var iterator = value.object.iterator();
 
@@ -1275,8 +1271,7 @@ pub fn AssociativeArray(comptime E: type, comptime V: type) type {
     return struct {
         map: std.EnumMap(E, V),
         pub fn toJson(allocator: mem.Allocator, value: JsonType) !@This() {
-            // TODO: initialize this more efficiently
-            var map = std.EnumMap(E, V){};
+            var map: std.EnumMap(E, V) = .{};
 
             var iterator = value.object.iterator();
 
@@ -1284,9 +1279,10 @@ pub fn AssociativeArray(comptime E: type, comptime V: type) type {
                 const k = pair.key_ptr.*;
                 const v = pair.value_ptr.*;
 
-                errdefer allocator.free(k);
+                defer allocator.free(k);
                 errdefer v.deinit(allocator);
 
+                // eg: enum(u8) would be @"enum".tag_type where tag_type is a u8
                 const int = std.fmt.parseInt(@typeInfo(E).@"enum".tag_type, k, 10) catch unreachable;
                 map.put(@enumFromInt(int), try parseInto(V, allocator, v));
             }

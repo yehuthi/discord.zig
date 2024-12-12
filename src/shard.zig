@@ -91,7 +91,7 @@ heart: Heart = .{ .heartbeatInterval = 45000, .lastBeat = 0 },
 
 ///
 handler: GatewayDispatchEvent(*Self),
-packets: std.ArrayList(u8),
+packets: std.ArrayListUnmanaged(u8),
 inflator: zlib.Decompressor,
 
 ///useful for closing the conn
@@ -171,7 +171,7 @@ pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
         .session_id = undefined,
         .handler = settings.run,
         .log = settings.log,
-        .packets = std.ArrayList(u8).init(allocator),
+        .packets = .{},
         .inflator = try zlib.Decompressor.init(allocator, .{ .header = .zlib_or_gzip }),
         .bucket = Bucket.init(
             allocator,
@@ -225,13 +225,13 @@ fn readMessage(self: *Self, _: anytype) !void {
     while (try self.client.read()) |msg| { // check your intents, dumbass
         defer self.client.done(msg);
 
-        try self.packets.appendSlice(msg.data);
+        try self.packets.appendSlice(self.allocator, msg.data);
 
         // end of zlib
         if (!std.mem.endsWith(u8, msg.data, &[4]u8{ 0x00, 0x00, 0xFF, 0xFF }))
             continue;
 
-        const buf = try self.packets.toOwnedSlice();
+        const buf = try self.packets.toOwnedSlice(self.allocator);
         const decompressed = try self.inflator.decompressAllAlloc(buf);
         defer self.allocator.free(decompressed);
 

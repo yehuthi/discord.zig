@@ -30,10 +30,8 @@ fn message_create(session: *Shard, message: Discord.Message) !void {
         var result = try session.sendMessage(message.channel_id, .{ .content = "hi :)" });
         defer result.deinit();
 
-        switch (result.value) {
-            .left => |e| std.debug.panic("Error: {d}\r{s}\n", .{ e.code, e.message }),
-            .right => |m| std.debug.print("Sent: {?s} sent by {s}\n", .{ m.content, m.author.username }),
-        }
+        const m = result.value.unwrap();
+        std.debug.print("sent: {?s}\n", .{m.content});
     };
 }
 

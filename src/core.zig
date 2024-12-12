@@ -27,11 +27,6 @@ const std = @import("std");
 const mem = std.mem;
 const debug = @import("internal.zig").debug;
 
-/// Calculate and return the shard ID for a given guild ID
-pub inline fn calculateShardId(guild_id: Snowflake, shards: ?usize) u64 {
-    return (guild_id.into() >> 22) % shards orelse 1;
-}
-
 const Self = @This();
 
 shard_details: ShardDetails,

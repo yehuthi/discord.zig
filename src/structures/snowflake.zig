@@ -56,7 +56,8 @@ pub const Snowflake = enum(u64) {
     /// zjson parse
     pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (value.is(.string))
-            return Snowflake.fromRaw(value.string) catch std.debug.panic("invalid snowflake: {s}\n", .{value.string});
+            return Snowflake.fromRaw(value.string) catch
+                std.debug.panic("invalid snowflake: {s}\n", .{value.string});
         unreachable;
     }
 
@@ -70,7 +71,12 @@ pub const Snowflake = enum(u64) {
         try writer.print("\"{d}\"", .{snowflake.into()});
     }
 
-    pub fn toTimestamp(self: Snowflake) u64 {
+    pub inline fn toTimestamp(self: Snowflake) u64 {
         return (self.into() >> 22) + discord_epoch;
+    }
+
+    /// Calculate and return the shard ID for a given guild ID
+    pub inline fn calculateShardId(self: Snowflake, shards: ?usize) u64 {
+        return (self.into() >> 22) % shards orelse 1;
     }
 };
