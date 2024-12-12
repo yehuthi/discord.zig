@@ -5,34 +5,42 @@ A high-performance bleeding edge Discord library in Zig, featuring full API cove
 * 100% API Coverage & Fully Typed: Offers complete access to Discord's API with strict typing for reliable and safe code.
 * High Performance: Faster than whichever library you can name (WIP)
 * Flexible Payload Parsing: Supports payload parsing through both zlib and zstd*.
+* Proper error handling
 
 ```zig
-const Client = @import("discord.zig").Client;
-const Shard = @import("discord.zig").Shard;
-const Discord = @import("discord.zig");
-const Intents = Discord.Intents;
 const std = @import("std");
+const Discord = @import("discord.zig");
+const Shard = Discord.Shard;
+const Intents = Discord.Intents;
 
-fn ready(_: *Shard, payload: Discord.Ready) void {
+fn ready(_: *Shard, payload: Discord.Ready) !void {
     std.debug.print("logged in as {s}\n", .{payload.user.username});
 }
 
-fn message_create(_: *Shard, message: Discord.Message) void {
-    std.debug.print("captured: {?s}\n", .{ message.content });
+fn message_create(session: *Shard, message: Discord.Message) !void {
+    if (message.content) |mc| if (std.ascii.eqlIgnoreCase(mc, "!hi")) {
+        var result = try session.sendMessage(message.channel_id, .{ .content = "discord.zig best lib" });
+        defer result.deinit();
+
+        switch (result.value) {
+            .left => |e| std.debug.panic("Error: {d}\r{s}\n", .{ e.code, e.message }), // or you may tell the end user the error
+            .right => |m| std.debug.print("Sent: {?s} sent by {s}\n", .{ m.content, m.author.username }),
+        }
+    };
 }
 
 pub fn main() !void {
-    var handler = Client.init(allocator);
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 9999 }){};
+    var handler = Discord.init(gpa.allocator());
     try handler.start(.{
-        .token = std.posix.getenv("TOKEN") orelse unreachable,
-        .intents = Intents.fromRaw(37379),
+        .token = std.posix.getenv("TOKEN").?, // or your token
+        .intents = Intents.fromRaw(53608447), // all intents
         .run = .{ .message_create = &message_create, .ready = &ready },
         .log = .yes,
         .options = .{},
     });
     errdefer handler.deinit();
 }
-
 ```
 ## Installation
 ```zig
@@ -60,6 +68,7 @@ Contributions are welcome! Please open an issue or pull request if you'd like to
 |-------------------------------------------------------------|--------|
 | stablish good sharding support with buckets                 | ✅     |
 | finish the event coverage roadmap                           | ✅     |
+| proper error handling                                       | ✅     |
 | use the priority queues for handling ratelimits (half done) | ❌     |
 | make the library scalable with a gateway proxy              | ❌     |
 | get a cool logo                                             | ❌     |

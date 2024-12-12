@@ -32,7 +32,7 @@ pub fn build(b: *std.Build) void {
 
     const marin = b.addExecutable(.{
         .name = "marin",
-        .root_source_file = b.path("src/test.zig"),
+        .root_source_file = b.path("test/test.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,

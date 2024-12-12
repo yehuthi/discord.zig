@@ -19,6 +19,8 @@ const mem = std.mem;
 const http = std.http;
 const json = std.json;
 const zjson = @import("json.zig");
+pub const Result = @import("errors.zig").Result;
+pub const DiscordError = @import("errors.zig").DiscordError;
 
 pub const BASE_URL = "https://discord.com/api/v10";
 
@@ -95,22 +97,24 @@ pub const FetchReq = struct {
         return query.toOwnedSlice(self.allocator);
     }
 
-    pub fn get(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
+    pub fn get(self: *FetchReq, comptime T: type, path: []const u8) !Result(T) {
         const result = try self.makeRequest(.GET, path, null);
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        const output = try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        const output = try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
         return output;
     }
 
-    pub fn delete(self: *FetchReq, path: []const u8) !void {
+    pub fn delete(self: *FetchReq, path: []const u8) !Result(void) {
         const result = try self.makeRequest(.DELETE, path, null);
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.tryParse(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
-    pub fn patch(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !zjson.Owned(T) {
+    pub fn patch(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !Result(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -120,9 +124,9 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.PATCH, path, try string.toOwnedSlice());
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
     pub fn patch2(self: *FetchReq, path: []const u8, object: anytype) !void {
@@ -135,10 +139,12 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.PATCH, path, try string.toOwnedSlice());
 
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
-    pub fn put(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !zjson.Owned(T) {
+    pub fn put(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !Result(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -148,12 +154,12 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.PUT, path, try string.toOwnedSlice());
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn put2(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !?zjson.Owned(T) {
+    pub fn put2(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !Result(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -163,28 +169,30 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.PUT, path, try string.toOwnedSlice());
 
         if (result.status == .no_content)
-            return null;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn put3(self: *FetchReq, path: []const u8) !void {
+    pub fn put3(self: *FetchReq, path: []const u8) !Result(void) {
         const result = try self.makeRequest(.PUT, path, null);
 
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
-    pub fn put4(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
+    pub fn put4(self: *FetchReq, comptime T: type, path: []const u8) !Result(T) {
         const result = try self.makeRequest(.PUT, path, null);
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn put5(self: *FetchReq, path: []const u8, object: anytype) !void {
+    pub fn put5(self: *FetchReq, path: []const u8, object: anytype) !Result(void) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -194,10 +202,12 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.PUT, path, try self.body.toOwnedSlice());
 
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
-    pub fn post(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !zjson.Owned(T) {
+    pub fn post(self: *FetchReq, comptime T: type, path: []const u8, object: anytype) !Result(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -207,18 +217,18 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.POST, path, try string.toOwnedSlice());
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn post2(self: *FetchReq, comptime T: type, path: []const u8) !zjson.Owned(T) {
+    pub fn post2(self: *FetchReq, comptime T: type, path: []const u8) !Result(T) {
         const result = try self.makeRequest(.POST, path, null);
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
     pub fn post3(
@@ -227,7 +237,7 @@ pub const FetchReq = struct {
         path: []const u8,
         object: anytype,
         files: []const FileData,
-    ) !zjson.Owned(T) {
+    ) !Result(T) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -237,12 +247,12 @@ pub const FetchReq = struct {
         const result = try self.makeRequestWithFiles(.POST, path, try string.toOwnedSlice(), files);
 
         if (result.status != .ok)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
 
-        return try zjson.parse(T, self.allocator, try self.body.toOwnedSlice());
+        return try zjson.parseRight(DiscordError, T, self.allocator, try self.body.toOwnedSlice());
     }
 
-    pub fn post4(self: *FetchReq, path: []const u8, object: anytype) !void {
+    pub fn post4(self: *FetchReq, path: []const u8, object: anytype) !Result(void) {
         var buf: [4096]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buf);
         var string = std.ArrayList(u8).init(fba.allocator());
@@ -252,14 +262,18 @@ pub const FetchReq = struct {
         const result = try self.makeRequest(.POST, path, try string.toOwnedSlice());
 
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
-    pub fn post5(self: *FetchReq, path: []const u8) !void {
+    pub fn post5(self: *FetchReq, path: []const u8) !Result(void) {
         const result = try self.makeRequest(.POST, path, null);
 
         if (result.status != .no_content)
-            return error.FailedRequest;
+            return try zjson.parseLeft(DiscordError, void, self.allocator, try self.body.toOwnedSlice());
+
+        return .ok({});
     }
 
     pub fn makeRequest(

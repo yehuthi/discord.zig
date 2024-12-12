@@ -76,10 +76,23 @@ pub fn ParseResult(comptime T: type) type {
 }
 
 /// Either a b = Left a | Right b
-pub fn Either(comptime T: type, comptime U: type) type {
+pub fn Either(comptime L: type, comptime R: type) type {
     return union(enum) {
-        left: T,
-        right: U,
+        left: L,
+        right: R,
+
+        /// always returns .right
+        pub fn unwrap(self: @This()) R {
+            // discord.zig specifics
+            if (@hasField(L, "code") and @hasField(L, "message") and self.value == .left)
+                std.debug.panic("Error: {d}, {s}\n", .{ self.value.left.code, self.value.left.message });
+
+            // for other libraries, it'll do this
+            if (self.value == .left)
+                std.debug.panic("Error: {any}\n", .{self.value.left});
+
+            return self.value.right;
+        }
 
         pub fn is(self: @This(), tag: std.meta.Tag(@This())) bool {
             return self == tag;
@@ -1141,6 +1154,30 @@ pub fn Owned(comptime T: type) type {
     };
 }
 
+/// same as `Owned` but instead it handles 2 different values, generally `.right` is the correct one and `left` the error type
+pub fn OwnedEither(comptime L: type, comptime R: type) type {
+    // if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
+
+    return struct {
+        value: Either(L, R),
+        arena: *std.heap.ArenaAllocator,
+
+        pub fn ok(ok_value: R) @This() {
+            return .{ .value = ok_value };
+        }
+
+        pub fn err(err_value: L) @This() {
+            return .{ .value = err_value };
+        }
+
+        pub fn deinit(self: @This()) void {
+            const allocator = self.arena.child_allocator;
+            self.arena.deinit();
+            allocator.destroy(self.arena);
+        }
+    };
+}
+
 /// parse any string containing a JSON object root `{...}`
 /// casts the value into `T`
 pub fn parse(comptime T: type, child_allocator: mem.Allocator, data: []const u8) ParserError!Owned(T) {
@@ -1152,6 +1189,36 @@ pub fn parse(comptime T: type, child_allocator: mem.Allocator, data: []const u8)
     const allocator = owned.arena.allocator();
     const value = try ultimateParserAssert(data, allocator);
     owned.value = try parseInto(T, allocator, value);
+    errdefer owned.arena.deinit();
+
+    return owned;
+}
+
+/// same as `parse`
+pub fn parseLeft(comptime L: type, comptime R: type, child_allocator: mem.Allocator, data: []const u8) ParserError!OwnedEither(L, R) {
+    var owned: OwnedEither(L, R) = .{
+        .arena = try child_allocator.create(std.heap.ArenaAllocator),
+        .value = undefined,
+    };
+    owned.arena.* = std.heap.ArenaAllocator.init(child_allocator);
+    const allocator = owned.arena.allocator();
+    const value = try ultimateParserAssert(data, allocator);
+    owned.value = .{ .left = try parseInto(L, allocator, value) };
+    errdefer owned.arena.deinit();
+
+    return owned;
+}
+
+/// same as `parse`
+pub fn parseRight(comptime L: type, comptime R: type, child_allocator: mem.Allocator, data: []const u8) ParserError!OwnedEither(L, R) {
+    var owned: OwnedEither(L, R) = .{
+        .arena = try child_allocator.create(std.heap.ArenaAllocator),
+        .value = undefined,
+    };
+    owned.arena.* = std.heap.ArenaAllocator.init(child_allocator);
+    const allocator = owned.arena.allocator();
+    const value = try ultimateParserAssert(data, allocator);
+    owned.value = .{ .right = try parseInto(R, allocator, value) };
     errdefer owned.arena.deinit();
 
     return owned;
