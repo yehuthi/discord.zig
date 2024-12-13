@@ -27,6 +27,7 @@ pub usingnamespace @import("auditlog.zig");
 pub usingnamespace @import("automod.zig");
 pub usingnamespace @import("channel.zig");
 pub usingnamespace @import("command.zig");
+pub usingnamespace @import("component.zig");
 pub usingnamespace @import("embed.zig");
 pub usingnamespace @import("emoji.zig");
 pub usingnamespace @import("gateway.zig");

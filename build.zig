@@ -38,7 +38,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    marin.root_module.addImport("discord.zig", dzig);
+    marin.root_module.addImport("discord", dzig);
     marin.root_module.addImport("ws", websocket.module("websocket"));
     marin.root_module.addImport("zlib", zlib.module("zlib"));
     marin.root_module.addImport("deque", deque.module("zig-deque"));

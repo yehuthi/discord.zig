@@ -33,9 +33,7 @@ const Poll = @import("poll.zig").Poll;
 const AvatarDecorationData = @import("user.zig").AvatarDecorationData;
 const MessageActivityTypes = @import("shared.zig").MessageActivityTypes;
 const Partial = @import("partial.zig").Partial;
-
-/// TODO: fix this
-pub const MessageComponent = isize;
+const MessageComponent = @import("component.zig").MessageComponent;
 
 /// https://discord.com/developers/docs/resources/channel#message-object
 pub const Message = struct {

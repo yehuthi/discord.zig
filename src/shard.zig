@@ -74,6 +74,7 @@ pub const ShardOptions = struct {
     ratelimit_options: RatelimitOptions = .{},
 };
 
+total_shards: usize,
 id: usize,
 
 client: ws.Client,
@@ -128,6 +129,7 @@ pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
                 .intents = self.details.intents.toRaw(),
                 .properties = properties orelse default_identify_properties,
                 .token = self.details.token,
+                .shard = &.{ self.id, self.total_shards },
             },
         };
         try self.send(false, data);
@@ -144,7 +146,7 @@ pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
     }
 }
 
-pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
+pub fn init(allocator: mem.Allocator, shard_id: usize, total_shards: usize, settings: struct {
     token: []const u8,
     intents: Intents,
     options: ShardOptions,
@@ -161,6 +163,7 @@ pub fn init(allocator: mem.Allocator, shard_id: usize, settings: struct {
             .ratelimit_options = settings.options.ratelimit_options,
         },
         .id = shard_id,
+        .total_shards = total_shards,
         .allocator = allocator,
         .details = ShardDetails{
             .token = settings.token,
@@ -2799,12 +2802,7 @@ pub fn createSticker(
     defer req.deinit();
 
     var files = .{file};
-    return req.post2(
-        Types.Sticker,
-        path,
-        sticker,
-        &files,
-    );
+    return req.post2(Types.Sticker, path, sticker, &files);
 }
 
 /// Modify the given sticker.

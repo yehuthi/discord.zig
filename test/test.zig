@@ -15,7 +15,7 @@
 //! PERFORMANCE OF THIS SOFTWARE.
 
 const std = @import("std");
-const Discord = @import("discord.zig");
+const Discord = @import("discord");
 const Shard = Discord.Shard;
 const Intents = Discord.Intents;
 
@@ -26,18 +26,22 @@ fn ready(_: *Shard, payload: Discord.Ready) !void {
 }
 
 fn message_create(session: *Shard, message: Discord.Message) !void {
-    if (message.content) |mc| if (std.ascii.eqlIgnoreCase(mc, "!hi")) {
+    if (message.content != null and std.ascii.eqlIgnoreCase(message.content.?, "!hi")) {
         var result = try session.sendMessage(message.channel_id, .{ .content = "hi :)" });
         defer result.deinit();
 
         const m = result.value.unwrap();
         std.debug.print("sent: {?s}\n", .{m.content});
-    };
+    }
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 9999 }){};
-    var handler = Discord.init(gpa.allocator());
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+
+    var handler = Discord.init(allocator);
+    defer handler.deinit();
+
     try handler.start(.{
         .token = std.posix.getenv("DISCORD_TOKEN").?,
         .intents = Intents.fromRaw(INTENTS),
@@ -45,5 +49,4 @@ pub fn main() !void {
         .log = .yes,
         .options = .{},
     });
-    errdefer handler.deinit();
 }

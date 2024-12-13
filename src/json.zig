@@ -1011,7 +1011,7 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
 
             const fieldname = switch (value) {
                 .string => |slice| slice,
-                else => @panic("can only cast strings for untagged union"),
+                else => @panic("can only cast strings for tagged union"),
             };
 
             inline for (unionInfo.fields) |u_field| {

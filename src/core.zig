@@ -154,7 +154,7 @@ fn spawnBuckets(self: *Self) ![][]Shard {
 fn create(self: *Self, shard_id: usize) !Shard {
     if (self.shards.get(shard_id)) |s| return s;
 
-    const shard: Shard = try Shard.init(self.allocator, shard_id, .{
+    const shard: Shard = try .init(self.allocator, shard_id, self.options.total_shards, .{
         .token = self.shard_details.token,
         .intents = self.shard_details.intents,
         .options = Shard.ShardOptions{

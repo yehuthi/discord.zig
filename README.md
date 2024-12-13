@@ -9,39 +9,40 @@ A high-performance bleeding edge Discord library in Zig, featuring full API cove
 
 ```zig
 const std = @import("std");
-const Discord = @import("discord.zig");
+const Discord = @import("discord");
 const Shard = Discord.Shard;
-const Intents = Discord.Intents;
 
 fn ready(_: *Shard, payload: Discord.Ready) !void {
     std.debug.print("logged in as {s}\n", .{payload.user.username});
 }
 
 fn message_create(session: *Shard, message: Discord.Message) !void {
-    if (message.content) |mc| if (std.ascii.eqlIgnoreCase(mc, "!hi")) {
-        var result = try session.sendMessage(message.channel_id, .{ .content = "discord.zig best lib" });
+    if (std.ascii.eqlIgnoreCase(message.content.?, "!hi")) {
+        var result = try session.sendMessage(message.channel_id, .{
+            .content = "hello world from discord.zig",
+        });
         defer result.deinit();
 
-        switch (result.value) {
-            .left => |e| std.debug.panic("Error: {d}\r{s}\n", .{ e.code, e.message }), // or you may tell the end user the error
-            .right => |m| std.debug.print("Sent: {?s} sent by {s}\n", .{ m.content, m.author.username }),
-        }
-    };
+        const m = result.value.unwrap();
+        std.debug.print("sent: {?s}\n", .{m.content});
+    }
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 9999 }){};
-    var handler = Discord.init(gpa.allocator());
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+
+    var handler = Discord.init(allocator);
+    defer handler.deinit();
+
     try handler.start(.{
-        .token = std.posix.getenv("TOKEN").?, // or your token
-        .intents = Intents.fromRaw(53608447), // all intents
+        .intents = Discord.Intents.fromRaw(53608447);
+        .token = std.posix.getenv("DISCORD_TOKEN").?,
         .run = .{ .message_create = &message_create, .ready = &ready },
-        .log = .yes,
-        .options = .{},
     });
-    errdefer handler.deinit();
 }
 ```
+
 ## Installation
 ```zig
 // In your build.zig file
