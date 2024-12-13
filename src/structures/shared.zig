@@ -43,7 +43,7 @@ pub const UserFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u34));
     }
 
@@ -83,7 +83,7 @@ pub const PremiumUsageFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u8));
     }
 
@@ -102,7 +102,7 @@ pub const PurchasedFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u8));
     }
 
@@ -122,7 +122,7 @@ pub const MemberFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u16));
     }
 
@@ -198,7 +198,7 @@ pub const ChannelFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u32));
     }
 
@@ -224,7 +224,7 @@ pub const RoleFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u2));
     }
 
@@ -242,7 +242,7 @@ pub const AttachmentFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u8));
     }
 
@@ -263,7 +263,7 @@ pub const SkuFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u16));
     }
 
@@ -288,7 +288,7 @@ pub const MessageFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u16));
     }
 
@@ -328,7 +328,7 @@ pub const ActivityFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u16));
     }
 
@@ -366,7 +366,7 @@ pub const ApplicationFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u32));
     }
 
@@ -577,7 +577,7 @@ pub const SystemChannelFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u8));
     }
 
@@ -622,7 +622,7 @@ pub const ChannelTypes = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u32));
     }
 
@@ -949,7 +949,7 @@ pub const BitwisePermissionFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u64));
     }
 
@@ -1296,7 +1296,7 @@ pub const GatewayIntents = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         return @bitCast(value.number.cast(u32));
     }
     ///

@@ -54,7 +54,7 @@ pub const Snowflake = enum(u64) {
     }
 
     /// zjson parse
-    pub fn toJson(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (value.is(.string))
             return Snowflake.fromRaw(value.string) catch
                 std.debug.panic("invalid snowflake: {s}\n", .{value.string});

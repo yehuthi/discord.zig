@@ -977,8 +977,8 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             return try parseInto(optionalInfo.child, allocator, value); // optional
         },
         .@"union" => |unionInfo| {
-            if (std.meta.hasFn(T, "toJson")) {
-                return try T.toJson(allocator, value);
+            if (std.meta.hasFn(T, "json")) {
+                return try T.json(allocator, value);
             }
 
             var result: ?T = null;
@@ -1027,8 +1027,8 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             return result.?;
         },
         .@"enum" => {
-            if (std.meta.hasFn(T, "toJson"))
-                return try T.toJson(allocator, value);
+            if (std.meta.hasFn(T, "json"))
+                return try T.json(allocator, value);
 
             switch (value) {
                 .string => return std.meta.stringToEnum(T, value.string).?, // useful for parsing a name into enum T
@@ -1038,8 +1038,8 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
         },
         .@"struct" => |structInfo| {
             var r: T = undefined;
-            if (std.meta.hasFn(T, "toJson"))
-                return try T.toJson(allocator, value);
+            if (std.meta.hasFn(T, "json"))
+                return try T.json(allocator, value);
 
             if (!value.is(.object))
                 @panic("tried to cast a non-object into: " ++ @typeName(T));
@@ -1128,8 +1128,8 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
                 else => return error.TypeMismatch, // may only cast string, array
             },
             else => {
-                if (std.meta.hasFn(T, "toJson"))
-                    return T.toJson(allocator, value);
+                if (std.meta.hasFn(T, "json"))
+                    return T.json(allocator, value);
                 return error.TypeMismatch; // unsupported type
             },
         },
@@ -1224,7 +1224,7 @@ pub fn parseRight(comptime L: type, comptime R: type, child_allocator: mem.Alloc
 pub fn Record(comptime T: type) type {
     return struct {
         map: std.StringHashMapUnmanaged(T),
-        pub fn toJson(allocator: mem.Allocator, value: JsonType) !@This() {
+        pub fn json(allocator: mem.Allocator, value: JsonType) !@This() {
             var map: std.StringHashMapUnmanaged(T) = .init;
 
             var iterator = value.object.iterator();
@@ -1270,7 +1270,7 @@ pub fn AssociativeArray(comptime E: type, comptime V: type) type {
 
     return struct {
         map: std.EnumMap(E, V),
-        pub fn toJson(allocator: mem.Allocator, value: JsonType) !@This() {
+        pub fn json(allocator: mem.Allocator, value: JsonType) !@This() {
             var map: std.EnumMap(E, V) = .{};
 
             var iterator = value.object.iterator();

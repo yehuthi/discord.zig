@@ -153,7 +153,7 @@ pub const SelectMenu = union(MessageComponentTypes) {
     SelectMenuUsersAndRoles: SelectMenuUsersAndRoles,
     SelectMenuChannels: SelectMenuChannels,
 
-    pub fn toJson(allocator: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(allocator: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (!value.is(.object))
             @panic("coulnd't match against non-object type");
 
@@ -211,7 +211,7 @@ pub const MessageComponent = union(MessageComponentTypes) {
     SelectMenuUsersAndRoles: SelectMenuUsersAndRoles,
     SelectMenuChannels: SelectMenuChannels,
 
-    pub fn toJson(allocator: std.mem.Allocator, value: zjson.JsonType) !@This() {
+    pub fn json(allocator: std.mem.Allocator, value: zjson.JsonType) !@This() {
         if (!value.is(.object))
             @panic("coulnd't match against non-object type");
 
