@@ -158,16 +158,12 @@ pub const SelectMenu = union(MessageComponentTypes) {
             @panic("coulnd't match against non-object type");
 
         switch (value.object.get("type") orelse @panic("couldn't find property `type`")) {
-            .number => |num| switch (num) {
-                .integer => |int| return switch (@as(MessageComponentTypes, @enumFromInt(int))) {
-                    .SelectMenu => .{ .SelectMenu = try zjson.parseInto(SelectMenuString, allocator, value) },
-                    .SelectMenuUsers => .{ .SelectMenuUsers = try zjson.parseInto(SelectMenuUsers, allocator, value) },
-                    .SelectMenuRoles => .{ .SelectMenuRoles = try zjson.parseInto(SelectMenuRoles, allocator, value) },
-                    .SelectMenuUsersAndRoles => .{ .SelectMenuUsersAndRoles = try zjson.parseInto(SelectMenuUsersAndRoles, allocator, value) },
-                    .SelectMenuChannels => .{ .SelectMenuChannels = try zjson.parseInto(SelectMenuChannels, allocator, value) },
-                    else => unreachable,
-                },
-                else => unreachable,
+            .number => |num| return switch (@as(MessageComponentTypes, @enumFromInt(num.integer))) {
+                .SelectMenu => .{ .SelectMenu = try zjson.parseInto(SelectMenuString, allocator, value) },
+                .SelectMenuUsers => .{ .SelectMenuUsers = try zjson.parseInto(SelectMenuUsers, allocator, value) },
+                .SelectMenuRoles => .{ .SelectMenuRoles = try zjson.parseInto(SelectMenuRoles, allocator, value) },
+                .SelectMenuUsersAndRoles => .{ .SelectMenuUsersAndRoles = try zjson.parseInto(SelectMenuUsersAndRoles, allocator, value) },
+                .SelectMenuChannels => .{ .SelectMenuChannels = try zjson.parseInto(SelectMenuChannels, allocator, value) },
             },
             else => @panic("got type but couldn't match against non enum member `type`"),
         }
@@ -216,21 +212,17 @@ pub const MessageComponent = union(MessageComponentTypes) {
             @panic("coulnd't match against non-object type");
 
         switch (value.object.get("type") orelse @panic("couldn't find property `type`")) {
-            .number => |num| switch (num) {
-                .integer => |int| return switch (@as(MessageComponentTypes, @enumFromInt(int))) {
-                    .ActionRow => .{ .ActionRow = try zjson.parseInto([]MessageComponent, allocator, value) },
-                    .Button => .{ .Button = try zjson.parseInto(Button, allocator, value) },
-                    .SelectMenu => .{ .SelectMenu = try zjson.parseInto(SelectMenuString, allocator, value) },
-                    .InputText => .{ .InputText = try zjson.parseInto(InputText, allocator, value) },
-                    .SelectMenuUsers => .{ .SelectMenuUsers = try zjson.parseInto(SelectMenuUsers, allocator, value) },
-                    .SelectMenuRoles => .{ .SelectMenuRoles = try zjson.parseInto(SelectMenuRoles, allocator, value) },
-                    .SelectMenuUsersAndRoles => .{ .SelectMenuUsersAndRoles = try zjson.parseInto(SelectMenuUsersAndRoles, allocator, value) },
-                    .SelectMenuChannels => .{ .SelectMenuChannels = try zjson.parseInto(SelectMenuChannels, allocator, value) },
-                },
-                else => unreachable,
+            .number => |num| return switch (@as(MessageComponentTypes, @enumFromInt(num.integer))) {
+                .ActionRow => .{ .ActionRow = try zjson.parseInto([]MessageComponent, allocator, value) },
+                .Button => .{ .Button = try zjson.parseInto(Button, allocator, value) },
+                .SelectMenu => .{ .SelectMenu = try zjson.parseInto(SelectMenuString, allocator, value) },
+                .InputText => .{ .InputText = try zjson.parseInto(InputText, allocator, value) },
+                .SelectMenuUsers => .{ .SelectMenuUsers = try zjson.parseInto(SelectMenuUsers, allocator, value) },
+                .SelectMenuRoles => .{ .SelectMenuRoles = try zjson.parseInto(SelectMenuRoles, allocator, value) },
+                .SelectMenuUsersAndRoles => .{ .SelectMenuUsersAndRoles = try zjson.parseInto(SelectMenuUsersAndRoles, allocator, value) },
+                .SelectMenuChannels => .{ .SelectMenuChannels = try zjson.parseInto(SelectMenuChannels, allocator, value) },
             },
             else => @panic("got type but couldn't match against non enum member `type`"),
         }
-        unreachable;
     }
 };
