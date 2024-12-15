@@ -433,18 +433,19 @@ pub fn jsonObject(str: []const u8, allocator: mem.Allocator) ParseResult(JsonRaw
         return .{ out, .{} };
     };
     defer allocator.free(pairs);
-    errdefer for (pairs) |p| {
-        allocator.free(p[0]);
-        p[1].deinit(allocator);
+    errdefer for (pairs) |kv| {
+        const k, const v = kv;
+        allocator.free(k);
+        v.deinit(allocator);
     };
     const str4, _ = try closingCurlyBrace(str3, allocator);
 
     var obj: JsonRawHashMap = .{};
     errdefer obj.deinit(allocator);
 
-    for (pairs) |entry| {
-        const name, const value = entry;
-        try obj.put(allocator, name, value);
+    for (pairs) |kv| {
+        const k, const v = kv;
+        try obj.put(allocator, k, v);
     }
 
     return .{ str4, obj };
@@ -457,23 +458,38 @@ test jsonObject {
 
     const rem, var obj = try jsonObject(data, std.testing.allocator);
     defer obj.deinit(std.testing.allocator);
+
     var iterator = obj.iterator();
     while (iterator.next()) |kv| {
         const k = kv.key_ptr.*;
         const v = kv.value_ptr.*;
+        defer std.testing.allocator.free(k);
+        defer v.deinit(std.testing.allocator);
         std.debug.print("key: {s}, value: {any} and rem: {s}\n", .{ k, v, rem });
     }
+
     try std.testing.expect(rem.len == 1);
 }
 
 pub const JsonType = union(enum) {
+    /// the identifier `null`
     null,
+
+    /// either the identifier `true` or the identifier `false`
     bool: bool,
+
+    /// the utf-8 string type, surrounded by backquotes
     string: []const u8,
+
     /// either a float or an int
     /// may be casted
     number: JsonNumber,
+
+    /// JsonType surrounded by brackets, separated by commas
     array: []JsonType,
+
+    /// the Object type, an unmanaged array hashmap, as keeping order might be useful for when printing
+    /// usually a string which represents the name of the property, followed by a colon, then a JsonType, separated by commas
     object: JsonRawHashMap,
 
     pub fn is(self: JsonType, tag: std.meta.Tag(JsonType)) bool {
@@ -491,11 +507,9 @@ pub const JsonType = union(enum) {
                 defer @constCast(&obj).deinit(allocator);
                 var it = obj.iterator();
                 while (it.next()) |entry| {
-                    //std.debug.print("freeing {*}\n", .{entry.key_ptr});
                     allocator.free(entry.key_ptr.*);
                     entry.value_ptr.*.deinit(allocator);
                 }
-                //allocator.destroy(&self);
             },
             else => {},
         }
@@ -504,7 +518,7 @@ pub const JsonType = union(enum) {
 
 /// entry point of the library
 pub const ultimateParser: Parser(JsonType) = alternation(JsonType, .{
-    jsonNull,
+    jsonNull, // attempts to parse each type from top to bottom
     jsonBool,
     jsonString,
     jsonNumber,
@@ -823,7 +837,7 @@ pub fn optional(comptime T: type, parser: Parser(T)) Parser(?T) {
             const rest, const parsed = parser(str, allocator) catch |err| return switch (err) {
                 error.UnexpectedCharacter, error.Empty, error.NumberCastFail => .{ str, null },
                 error.OutOfMemory => error.OutOfMemory,
-                else => return err,
+                else => err,
             };
             return .{ rest, parsed };
         }
@@ -907,7 +921,8 @@ pub const BailingAllocator = struct {
 /// general join
 /// useful for joining more than 2 parsers
 pub fn sequence(comptime Struct: type, comptime parsers: FieldParsers(Struct)) Parser(Struct) {
-    if (@typeInfo(Struct) != .@"struct") @compileError("expected a `struct` type");
+    if (@typeInfo(Struct) != .@"struct")
+        @compileError("expected a `struct` type");
 
     return struct {
         fn f(str: []const u8, allocator: std.mem.Allocator) ParseResult(Struct) {
@@ -954,6 +969,36 @@ pub fn repetition(comptime T: type, parser: Parser(T)) Parser([]T) {
 
 pub const Error = std.mem.Allocator.Error || ParserError;
 
+/// assumes that you are casting a type against its JsonType counterpart
+///
+/// u8, u16, u32...            -> assumes JsonNumber == .integer
+/// i8, i16, i32...            -> assumes JsonNumber == .integer
+/// f16, f32, f64              -> assumes JsonNumber == .float
+/// array or slice of u8       -> JsonType.string
+/// array or slice of T        -> JsonType.array
+/// array of N elements        -> assumes JsonType.array.len == N
+/// null                       -> JsonType.null
+/// void                       -> ignores JsonType
+/// ?T                         -> JsonType
+/// *T                         -> JsonType, which always allocates memory
+/// struct{..}                 -> JsonType.object
+/// enum(..)                   -> if JsonNumber, assumes JsonNumber == .integer otherwise JsonType.string
+/// union                      -> JsonType.string | JsonType.bool | JsonType.number
+/// (empty) union(enum)        -> JsonType.string, the equivalent of `"a" | "b" | "c"` since values are `void`
+/// tagged union               -> panics, use DiscriminatedUnion(U, key) instead
+/// Record(T)                  -> JsonType.object
+/// AssociativeArray(E, V)     -> JsonType.object (where keys are interpreted as enum 'E' members)
+/// DiscriminatedUnion(U, key) -> JsonType.object (where a `key` that maps to `E` is present). Assumes that `U` is tagged by `E`
+///
+/// All other types are unsupported.
+/// (Packed structs must be parsed manually, as the default parser of a `packed struct` is mirrored to one of an enum's)
+///
+/// If you must forcibly cast a type, you shall write a `json` method
+/// the signature of the `json` function is as follows
+/// ```
+/// pub fn json(allocator: std.mem.Allocator, value: zjson.JsonType) !T
+/// ```
+/// where T is the type you must cast into
 pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Error!T {
     switch (@typeInfo(T)) {
         .void => return {},
@@ -1041,6 +1086,9 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             if (std.meta.hasFn(T, "json"))
                 return try T.json(allocator, value);
 
+            if (structInfo.layout == .@"packed")
+                return @bitCast(value.number.cast(structInfo.backing_integer.?)); // forcibly casted
+
             if (!value.is(.object))
                 @panic("tried to cast a non-object into: " ++ @typeName(T));
 
@@ -1064,16 +1112,19 @@ pub fn parseInto(comptime T: type, allocator: mem.Allocator, value: JsonType) Er
             switch (value) {
                 .string => |string| {
                     if (arrayInfo.child != u8) return error.TypeMismatch; // attempting to cast an array of T against a string
+                    std.debug.assert(arrayInfo.len == string.len);
+
                     var r: T = undefined;
-                    var i: usize = 0;
-                    while (i < arrayInfo.len) : (i += 1)
+                    comptime var i: usize = 0;
+                    inline while (i < arrayInfo.len) : (i += 1)
                         r[i] = try parseInto(arrayInfo.child, allocator, string[i]);
                     return r;
                 },
                 .array => |array| {
+                    std.debug.assert(arrayInfo.len == array.len);
                     var r: T = undefined;
-                    var i: usize = 0;
-                    while (i < arrayInfo.len) : (i += 1)
+                    comptime var i: usize = 0;
+                    inline while (i < arrayInfo.len) : (i += 1)
                         r[i] = try parseInto(arrayInfo.child, allocator, array[i]);
                     return r;
                 },
@@ -1174,14 +1225,14 @@ pub fn OwnedEither(comptime L: type, comptime R: type) type {
     };
 }
 
-/// parse any string containing a JSON object root `{...}`
-/// casts the value into `T`
+/// parse any string containing either a JSON object root `{...}` or a JSON array `[...]`
+/// casts the value into `T`, read `parseInto` for detailed instructions
 pub fn parse(comptime T: type, child_allocator: mem.Allocator, data: []const u8) ParserError!Owned(T) {
     var owned: Owned(T) = .{
         .arena = try child_allocator.create(std.heap.ArenaAllocator),
         .value = undefined,
     };
-    owned.arena.* = std.heap.ArenaAllocator.init(child_allocator);
+    owned.arena.* = .init(child_allocator);
     const allocator = owned.arena.allocator();
     const value = try ultimateParserAssert(data, allocator);
     owned.value = try parseInto(T, allocator, value);
@@ -1196,7 +1247,7 @@ pub fn parseLeft(comptime L: type, comptime R: type, child_allocator: mem.Alloca
         .arena = try child_allocator.create(std.heap.ArenaAllocator),
         .value = undefined,
     };
-    owned.arena.* = std.heap.ArenaAllocator.init(child_allocator);
+    owned.arena.* = .init(child_allocator);
     const allocator = owned.arena.allocator();
     const value = try ultimateParserAssert(data, allocator);
     owned.value = .{ .left = try parseInto(L, allocator, value) };
@@ -1211,7 +1262,7 @@ pub fn parseRight(comptime L: type, comptime R: type, child_allocator: mem.Alloc
         .arena = try child_allocator.create(std.heap.ArenaAllocator),
         .value = undefined,
     };
-    owned.arena.* = std.heap.ArenaAllocator.init(child_allocator);
+    owned.arena.* = .init(child_allocator);
     const allocator = owned.arena.allocator();
     const value = try ultimateParserAssert(data, allocator);
     owned.value = .{ .right = try parseInto(R, allocator, value) };
@@ -1290,4 +1341,79 @@ pub fn AssociativeArray(comptime E: type, comptime V: type) type {
             return .{ .map = map };
         }
     };
+}
+
+/// assumes object.value[key] is of type `E` and the result thereof maps to the tagged union value
+/// assumes `key` is a field present in all members of type `U`
+/// eg: `type` is a property of type E and E.User maps to a User struct, whereas E.Admin maps to an Admin struct
+pub fn DiscriminatedUnion(comptime U: type, comptime key: []const u8) type {
+    if (@typeInfo(U) != .@"union")
+        @compileError("may only cast a union");
+
+    if (@typeInfo(U).@"union".tag_type == null)
+        @compileError("cannot cast untagged union");
+
+    const E = comptime @typeInfo(U).@"union".tag_type.?;
+
+    if (@typeInfo(U).@"union".tag_type.? != E)
+        @compileError("enum tag type of union(" ++ @typeName(U.@"union".tag_type) ++ ") doesn't match " ++ @typeName(E));
+
+    return struct {
+        t: U,
+        pub fn json(allocator: mem.Allocator, value: JsonType) !@This() {
+            if (!value.is(.object))
+                @panic("coulnd't match against non-object type");
+
+            const discriminator = value.object.get(key) orelse
+                @panic("couldn't find property " ++ key ++ "in raw object");
+
+            var u: U = undefined;
+
+            const tag = discriminator.number.cast(@typeInfo(E).@"enum".tag_type);
+
+            inline for (@typeInfo(E).@"enum".fields) |field| {
+                if (field.value == tag) {
+                    const T = comptime std.meta.fields(U)[field.value].type;
+                    comptime std.debug.assert(@hasField(T, key));
+                    u = @unionInit(U, field.name, try parseInto(T, allocator, value));
+                }
+            }
+
+            return .{ .t = u };
+        }
+    };
+}
+
+test DiscriminatedUnion {
+    // pretty simple stuff, in a real app you'd have thousands of these
+    const AccountTypes = enum { user, admin };
+
+    const User = struct {
+        type: AccountTypes,
+        id: u64,
+        name: []const u8,
+    };
+
+    const Admin = struct {
+        type: AccountTypes,
+        id: u64,
+        name: []const u8,
+        admin: bool,
+    };
+
+    const Account = union(AccountTypes) {
+        user: User,
+        admin: Admin,
+    };
+
+    const payload =
+        \\ {"type": 1, "id": 100000, "name": "Mathew", "admin": true}
+    ;
+
+    const data = try parse(DiscriminatedUnion(Account, "type"), std.testing.allocator, payload);
+    defer data.deinit();
+
+    try std.testing.expect(data.value.t == .admin);
+    try std.testing.expect(data.value.t.admin.type == .admin);
+    // we don't care otherwise about the data
 }

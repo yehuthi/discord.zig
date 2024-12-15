@@ -16,7 +16,6 @@
 
 const std = @import("std");
 const Snowflake = @import("snowflake.zig").Snowflake;
-const zjson = @import("../json.zig");
 
 pub const PresenceStatus = enum {
     online,
@@ -41,10 +40,6 @@ pub const UserFlags = packed struct {
 
     pub fn fromRaw(raw: u34) UserFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u34));
     }
 
     DiscordEmployee: bool = false,
@@ -83,10 +78,6 @@ pub const PremiumUsageFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u8));
-    }
-
     PremiumDiscriminator: bool = false,
     AnimatedAvatar: bool = false,
     ProfileBanner: bool = false,
@@ -100,10 +91,6 @@ pub const PurchasedFlags = packed struct {
 
     pub fn fromRaw(raw: u8) PurchasedFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u8));
     }
 
     NitroClassic: bool = false,
@@ -120,10 +107,6 @@ pub const MemberFlags = packed struct {
 
     pub fn fromRaw(raw: u16) MemberFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u16));
     }
 
     ///
@@ -198,10 +181,6 @@ pub const ChannelFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u32));
-    }
-
     None: bool = false,
     /// this thread is pinned to the top of its parent `GUILD_FORUM` channel
     Pinned: bool = false,
@@ -224,10 +203,6 @@ pub const RoleFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u2));
-    }
-
     None: bool = false,
     /// Role can be selected by members in an onboarding prompt
     InPrompt: bool = false,
@@ -240,10 +215,6 @@ pub const AttachmentFlags = packed struct {
 
     pub fn fromRaw(raw: u8) AttachmentFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u8));
     }
 
     None: bool = false,
@@ -261,10 +232,6 @@ pub const SkuFlags = packed struct {
 
     pub fn fromRaw(raw: u16) SkuFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u16));
     }
 
     _pad: u2 = 0,
@@ -286,10 +253,6 @@ pub const MessageFlags = packed struct {
 
     pub fn fromRaw(raw: u16) MessageFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u16));
     }
 
     /// This message has been published to subscribed channels (via Channel Following)
@@ -328,10 +291,6 @@ pub const ActivityFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u16));
-    }
-
     Instance: bool = false,
     Join: bool = false,
     Spectate: bool = false,
@@ -364,10 +323,6 @@ pub const ApplicationFlags = packed struct {
 
     pub fn fromRaw(raw: u32) ApplicationFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u32));
     }
 
     _pad: u5 = 0,
@@ -577,10 +532,6 @@ pub const SystemChannelFlags = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u8));
-    }
-
     /// Suppress member join notifications
     SuppressJoinNotifications: bool = false,
     /// Suppress server boost notifications
@@ -620,10 +571,6 @@ pub const ChannelTypes = packed struct {
 
     pub fn fromRaw(raw: u32) ChannelTypes {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u32));
     }
 
     /// A text channel within a server
@@ -947,10 +894,6 @@ pub const BitwisePermissionFlags = packed struct {
 
     pub fn fromRaw(raw: u64) BitwisePermissionFlags {
         return @bitCast(raw);
-    }
-
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u64));
     }
 
     /// Allows creation of instant invites
@@ -1296,9 +1239,6 @@ pub const GatewayIntents = packed struct {
         return @bitCast(raw);
     }
 
-    pub fn json(_: std.mem.Allocator, value: zjson.JsonType) !@This() {
-        return @bitCast(value.number.cast(u32));
-    }
     ///
     /// - GUILD_CREATE
     /// - GUILD_UPDATE

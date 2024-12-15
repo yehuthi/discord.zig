@@ -47,7 +47,7 @@ const GatewayPayload = Types.GatewayPayload;
 const Opcode = Types.GatewayOpcodes;
 const Intents = Types.Intents;
 
-const Snowflake = @import("./structures/snowflake.zig").Snowflake;
+const Snowflake = Types.Snowflake;
 const FetchReq = @import("http.zig").FetchReq;
 const MakeRequestError = @import("http.zig").MakeRequestError;
 const Partial = Types.Partial;
@@ -190,11 +190,7 @@ inline fn calculateSafeRequests(options: RatelimitOptions) usize {
         @as(f64, @floatFromInt(options.max_requests_per_ratelimit_tick orelse 120)) -
         @ceil(@as(f64, @floatFromInt(options.ratelimit_reset_interval)) / 30000.0) * 2;
 
-    if (safe_requests < 0) {
-        return 0;
-    }
-
-    return @intFromFloat(safe_requests);
+    return if (safe_requests < 0) 0 else @intFromFloat(safe_requests);
 }
 
 inline fn _connect_ws(allocator: mem.Allocator, url: []const u8) !ws.Client {
