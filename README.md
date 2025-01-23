@@ -57,7 +57,8 @@ const dzig = b.dependency("discord.zig", .{});
 
 exe.root_module.addImport("discord.zig", dzig.module("discord.zig"));
 ```
-TIP: make sure you use the latest Zig!
+
+**Warning**: the library is intended to be used with the latest dev version of Zig.
 
 ## contributing
 Contributions are welcome! Please open an issue or pull request if you'd like to help improve the library.
