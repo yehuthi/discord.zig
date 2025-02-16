@@ -221,7 +221,11 @@ const ReadMessageError = mem.Allocator.Error || zlib.Error || zjson.ParserError;
 fn readMessage(self: *Self, _: anytype) !void {
     try self.client.readTimeout(0);
 
-    while (try self.client.read()) |msg| { // check your intents, dumbass
+	while (true) {
+		const msg = self.client.read() catch |err| {
+			std.log.err("failed to read a message ({any}), check intents", .{err});
+			return err;
+		} orelse { break; };
         defer self.client.done(msg);
 
         try self.packets.appendSlice(self.allocator, msg.data);
