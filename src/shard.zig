@@ -858,6 +858,29 @@ pub fn sendMessage(
     return res;
 }
 
+pub fn sendRaw(
+	self: *Self,
+	method: http.Method,
+	path: []const u8,
+	payload: []const u8,
+) MakeRequestError!http.Client.FetchResult {
+	var req = FetchReq.init(self.allocator, self.details.token);
+	defer req.deinit();
+	return req.makeRequest(method, path, payload);
+}
+
+pub fn send(
+	self: *Self,
+	method: http.Method,
+	path: []const u8,
+	payload: anytype,
+) !http.Client.FetchResult {
+	var buffer: [1024]u8 = undefined;
+	var fba = std.heap.FixedBufferAllocator.init(&buffer);
+	const json = try std.json.stringifyAlloc(fba.allocator(), payload, .{});
+	return self.sendRaw(method, path, json);
+}
+
 /// not part of Discord's docs
 /// wrapper for sending files
 pub const CreateMessageWithFile = struct {
