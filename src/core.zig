@@ -206,7 +206,7 @@ pub fn spawnShards(self: *Self) !void {
 }
 
 pub fn send(self: *Self, shard_id: usize, data: anytype) Shard.SendError!void {
-    if (self.shards.get(shard_id)) |shard| try shard.send(data);
+    if (self.shards.get(shard_id)) |shard| try shard.write_ws(data);
 }
 
 // SPEC OF THE RESHARDER:

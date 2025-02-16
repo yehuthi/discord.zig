@@ -113,7 +113,7 @@ pub fn resume_(self: *Self) SendError!void {
         .seq = self.sequence.load(.monotonic),
     } };
 
-    try self.send(false, data);
+    try self.write_ws(false, data);
 }
 
 inline fn gatewayUrl(self: ?*Self) []const u8 {
@@ -132,7 +132,7 @@ pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
                 .shard = &.{ self.id, self.total_shards },
             },
         };
-        try self.send(false, data);
+        try self.write_ws(false, data);
     } else {
         const data = .{
             .op = @intFromEnum(Opcode.Identify),
@@ -142,7 +142,7 @@ pub fn identify(self: *Self, properties: ?IdentifyProperties) SendError!void {
                 .token = self.details.token,
             },
         };
-        try self.send(false, data);
+        try self.write_ws(false, data);
     }
 }
 
@@ -293,7 +293,7 @@ fn readMessage(self: *Self, _: anytype) !void {
             .Heartbeat => {
                 self.ws_mutex.lock();
                 defer self.ws_mutex.unlock();
-                try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence.load(.monotonic) });
+                try self.write_ws(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = self.sequence.load(.monotonic) });
             },
             .Reconnect => {
                 try self.reconnect();
@@ -338,7 +338,7 @@ pub fn heartbeat(self: *Self, initial_jitter: f64) SendHeartbeatError!void {
 
         const seq = self.sequence.load(.monotonic);
         self.ws_mutex.lock();
-        try self.send(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
+        try self.write_ws(false, .{ .op = @intFromEnum(Opcode.Heartbeat), .d = seq });
         self.ws_mutex.unlock();
 
         if ((std.time.milliTimestamp() - last) > (5000 * self.heart.heartbeatInterval)) {
@@ -388,7 +388,7 @@ pub fn close(self: *Self, code: ShardSocketCloseCodes, reason: []const u8) Close
 
 pub const SendError = net.Stream.WriteError || std.ArrayList(u8).Writer.Error;
 
-pub fn send(self: *Self, _: bool, data: anytype) SendError!void {
+pub fn write_ws(self: *Self, _: bool, data: anytype) SendError!void {
     var buf: [1000]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buf);
     var string = std.ArrayList(u8).init(fba.allocator());
