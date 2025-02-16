@@ -32,8 +32,8 @@
             .hash = "1220cd041e8d04f1da9d6f46d0438f4e6809b113ba3454fffdaae96b59d2b35a6b2b",
         },
         .websocket = .{
-            .url = "https://github.com/yuzudev/websocket.zig/archive/refs/heads/master.zip",
-            .hash = "12207c03624f9f5a1c444bde3d484a9b1e927a902067fded98364b714de412d318e0",
+            .url = "git+https://github.com/karlseguin/websocket.zig#9011cd8fbec994a5995081ae3f6e7fab776a3d55",
+            .hash = "1220ba5546de2e01765c6d6ca035329291ecbeccbdd5b9b83f9ca3716d5da5f4c86d",
         },
     },
     .paths = .{
