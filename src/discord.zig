@@ -72,9 +72,10 @@ pub fn start(self: *Self, settings: struct {
     const body = try req.body.toOwnedSlice();
     defer self.allocator.free(body);
 
-    // check status idk
+    // check status
     if (res.status != http.Status.ok) {
-        @panic("we are cooked\n"); // check your token dumbass
+		std.log.err("/gateway/bot endpoint failure ({any}), check the token", .{ res });
+		@panic("/gateway/bot endpoint failure");
     }
 
     const parsed = try json.parseFromSlice(GatewayBotInfo, self.allocator, body, .{});
